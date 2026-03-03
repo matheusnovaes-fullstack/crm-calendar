@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import { getIssues } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
+import { Search, CalendarDays, Flag, User, Home, Loader } from "lucide-react";
 
 const MARCAS_MAP = {
-  "a7kbetbr":     { label:"7K",    color:"#09ff00" },
+  "a7kbetbr":     { label:"7K",      color:"#09ff00" },
   "cassinobetbr": { label:"Cassino", color:"#1059b9" },
   "verabetbr":    { label:"Vera",    color:"#66ff00" },
 };
@@ -25,18 +26,6 @@ export default function CampanhasPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-  getIssues("CP")
-    .then(({ data }) => {
-      const lista = data?.data || [];
-      // DEBUG - remover depois
-      console.log("Casas encontradas:", lista.map(i => ({ chave: i.chave, casa: i.casa, casa2: i.casa2 })));
-      setIssues(lista);
-    })
-    .catch(console.error)
-    .finally(() => setLoading(false));
-  }, []);
-
   const agora = new Date();
   function getStatus(i) {
     if (!i.data_inicio || !i.data_resolucao) return "sem_data";
@@ -46,7 +35,6 @@ export default function CampanhasPage() {
     return "encerrada";
   }
 
-  // Filtra por marca se vier da sidebar
   const issuesPorMarca = marca
     ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
     : issues;
@@ -89,6 +77,7 @@ export default function CampanhasPage() {
           {marcaInfo ? `Filtrando por marca: ${marcaInfo.label}` : "Lista completa de todas as campanhas do projeto CP"}
         </p>
 
+        {/* Filtros */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
           {[
             { key:"todos",     label:"Total",      color:"#6366F1" },
@@ -107,8 +96,9 @@ export default function CampanhasPage() {
           ))}
         </div>
 
+        {/* Busca */}
         <div style={{ position:"relative", marginBottom:16 }}>
-          <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }}>🔍</span>
+          <Search size={14} strokeWidth={2} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }} />
           <input value={busca} onChange={e => setBusca(e.target.value)}
             placeholder="Buscar por chave, nome ou marca..."
             style={{ width:"100%", padding:"11px 16px 11px 40px", borderRadius:10, border:"1px solid #0D1F3C", background:"#050E1F", color:"#F1F5F9", fontSize:13, outline:"none", boxSizing:"border-box" }}
@@ -118,7 +108,11 @@ export default function CampanhasPage() {
         </div>
 
         {loading ? (
-          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>⏳ Carregando...</div>
+          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            <Loader size={16} strokeWidth={2} style={{ animation:"spin 1s linear infinite" }} />
+            Carregando...
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         ) : filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
@@ -131,13 +125,26 @@ export default function CampanhasPage() {
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
                   <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>{issue.chave}</span>
-                  {issue.casa && <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5 }}>🏠 {issue.casa}</span>}
+                  {issue.casa && (
+                    <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                      <Home size={10} strokeWidth={2} /> {issue.casa}
+                    </span>
+                  )}
                 </div>
                 <h3 style={{ fontSize:14, fontWeight:700, color:"#F1F5F9", marginBottom:7 }}>{issue.resumo}</h3>
                 <div style={{ display:"flex", gap:16, fontSize:11, color:"#334155", flexWrap:"wrap" }}>
-                  <span>📅 {issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}</span>
-                  <span>🏁 {issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
-                  <span>👤 {issue.responsavel || "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <CalendarDays size={11} strokeWidth={2} />
+                    {issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <Flag size={11} strokeWidth={2} />
+                    {issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <User size={11} strokeWidth={2} />
+                    {issue.responsavel || "—"}
+                  </span>
                 </div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
