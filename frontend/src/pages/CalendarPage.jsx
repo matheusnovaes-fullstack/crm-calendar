@@ -15,8 +15,9 @@ const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
 export default function CalendarPage({ onAbrirTutorial }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+
   const { issues, newPromos, recarregar } = useIssues("CP");
-  const { notificacao, confirmar }        = useNotificacoes(issues);
+  const { notificacao, confirmar, historico, totalNaoLidas, marcarLidas } = useNotificacoes(issues);
 
   const hoje = new Date();
   const [ano, setAno] = useState(() => parseInt(searchParams.get("ano")) || hoje.getFullYear());
@@ -46,13 +47,20 @@ export default function CalendarPage({ onAbrirTutorial }) {
   const diasNoMes   = getDaysInMonth(ano, mes);
   const primeiroDia = getFirstDay(ano, mes);
 
+  // Usa statusDinamico do useIssues para contagem precisa
   const campsMes   = issues.filter(i => { if (!i.data_inicio) return false; const d = new Date(i.data_inicio); return d.getFullYear()===ano && d.getMonth()===mes; });
-  const ativas     = campsMes.filter(i => i.data_resolucao && new Date() <= new Date(i.data_resolucao)).length;
-  const encerradas = campsMes.length - ativas;
+  const ativas     = campsMes.filter(i => i.statusDinamico === "ativa").length;
+  const encerradas = campsMes.filter(i => i.statusDinamico === "encerrada").length;
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
-      <Sidebar />
+
+      {/* Sidebar recebe o historico do sininho */}
+      <Sidebar
+        historico={historico}
+        totalNaoLidas={totalNaoLidas}
+        marcarLidas={marcarLidas}
+      />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
@@ -149,6 +157,11 @@ export default function CalendarPage({ onAbrirTutorial }) {
             const isHoje    = dateStr === hojeStr;
             const temNova   = campanhas.some(c => newPromos.includes(c.chave));
 
+            // Contagem de status por dia para o card
+            const nAtivas     = campanhas.filter(c => c.statusDinamico === "ativa").length;
+            const nEncerradas = campanhas.filter(c => c.statusDinamico === "encerrada").length;
+            const nAgendadas  = campanhas.filter(c => c.statusDinamico === "agendada").length;
+
             return (
               <div key={dia}
                 onClick={() => total > 0 && navigate(`/day/${dateStr}?mes=${mes}&ano=${ano}`)}
@@ -159,7 +172,7 @@ export default function CalendarPage({ onAbrirTutorial }) {
                   border: isHoje  ? "1.5px solid rgba(99,102,241,0.6)"
                         : temNova ? "1.5px solid #FBBF24"
                         : total > 0 ? "1px solid #0D1F3C" : "1px solid #080F1E",
-                  borderRadius:10, padding:"10px 8px", minHeight:82,
+                  borderRadius:10, padding:"10px 8px", minHeight:90,
                   cursor: total > 0 ? "pointer" : "default",
                   transition:"all 0.15s ease",
                   animation: temNova ? "glow 1.5s infinite" : "none",
@@ -167,26 +180,45 @@ export default function CalendarPage({ onAbrirTutorial }) {
                 onMouseEnter={e => { if (total>0&&!isHoje&&!temNova) { e.currentTarget.style.border="1px solid rgba(99,102,241,0.4)"; e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.background="#0A1628"; }}}
                 onMouseLeave={e => { if (!isHoje&&!temNova) { e.currentTarget.style.border=total>0?"1px solid #0D1F3C":"1px solid #080F1E"; e.currentTarget.style.transform="none"; e.currentTarget.style.background=total>0?"#050E1F":"#030912"; }}}
               >
+                {/* Número do dia */}
                 <div style={{ fontSize:12, fontWeight:700, color:isHoje?"#A5B4FC":temNova?"#713F12":total>0?"#94A3B8":"#1E3A5F" }}>{dia}</div>
+
+                {/* Pills de status dinâmico */}
                 {total > 0 && (
-                  <div style={{ marginTop:6 }}>
-                    {campanhas.map(c => {
-                      const s = new Date(c.data_inicio); s.setHours(0,0,0,0);
-                      const e = new Date(c.data_resolucao); e.setHours(0,0,0,0);
-                      const d = new Date(ano,mes,dia);
-                      const isI = d.getTime()===s.getTime();
-                      const isF = d.getTime()===e.getTime();
-                      return (
-                        <div key={c.chave} style={{
-                          fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, marginBottom:3, textAlign:"center",
-                          background:isI?"rgba(16,185,129,0.15)":isF?"rgba(239,68,68,0.15)":"rgba(99,102,241,0.1)",
-                          color:isI?"#34D399":isF?"#F87171":"#818CF8",
-                          border:`1px solid ${isI?"rgba(16,185,129,0.3)":isF?"rgba(239,68,68,0.25)":"rgba(99,102,241,0.2)"}`,
-                        }}>
-                          {isI?"INÍCIO":isF?"ENCERRAMENTO":"EM CURSO"}
-                        </div>
-                      );
-                    })}
+                  <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
+
+                    {nAtivas > 0 && (
+                      <div style={{
+                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
+                        background:"rgba(99,102,241,0.15)", color:"#818CF8",
+                        border:"1px solid rgba(99,102,241,0.25)",
+                        display:"flex", alignItems:"center", justifyContent:"center", gap:3
+                      }}>
+                        <span style={{ width:5, height:5, borderRadius:"50%", background:"#818CF8", display:"inline-block", animation:"pulseDot 1.5s infinite" }} />
+                        {nAtivas > 1 ? `${nAtivas}x ` : ""}EM CURSO
+                      </div>
+                    )}
+
+                    {nAgendadas > 0 && (
+                      <div style={{
+                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
+                        background:"rgba(16,185,129,0.12)", color:"#34D399",
+                        border:"1px solid rgba(16,185,129,0.25)",
+                      }}>
+                        {nAgendadas > 1 ? `${nAgendadas}x ` : ""}INÍCIO
+                      </div>
+                    )}
+
+                    {nEncerradas > 0 && (
+                      <div style={{
+                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
+                        background:"rgba(239,68,68,0.12)", color:"#F87171",
+                        border:"1px solid rgba(239,68,68,0.25)",
+                      }}>
+                        {nEncerradas > 1 ? `${nEncerradas}x ` : ""}ENCERRAMENTO
+                      </div>
+                    )}
+
                   </div>
                 )}
               </div>
@@ -198,9 +230,9 @@ export default function CalendarPage({ onAbrirTutorial }) {
         <div style={{ display:"flex", gap:20, marginTop:16, flexWrap:"wrap" }}>
           {[
             { color:"rgba(99,102,241,0.6)", label:"Hoje"              },
+            { color:"#818CF8",              label:"Em curso"           },
             { color:"#34D399",              label:"Início de campanha" },
             { color:"#F87171",              label:"Fim de campanha"    },
-            { color:"#818CF8",              label:"Em curso"           },
             { color:"#FDE047",              label:"Nova campanha"      },
           ].map(l => (
             <span key={l.label} style={{ display:"flex", alignItems:"center", gap:6, fontSize:11, color:"#64748B" }}>
@@ -211,7 +243,11 @@ export default function CalendarPage({ onAbrirTutorial }) {
       </main>
 
       <NotificacaoPopup notificacao={notificacao} onConfirmar={confirmar} />
-      <style>{`@keyframes glow{0%,100%{opacity:1}50%{opacity:0.6}}`}</style>
+
+      <style>{`
+        @keyframes glow    { 0%,100%{opacity:1} 50%{opacity:0.6} }
+        @keyframes pulseDot{ 0%,100%{opacity:1} 50%{opacity:0.3} }
+      `}</style>
     </div>
   );
 }
