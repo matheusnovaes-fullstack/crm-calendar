@@ -50,7 +50,8 @@ export default function PromoPage() {
     { label:"Componente",         value:issue.componente       },
     { label:"Prioridade",         value:issue.prioridade       },
     { label:"Casa",               value:issue.casa             },
-    { label:"Jogo",               value:issue.jogo             },
+    { label:"Jogo",               value:issue.jogo             }, 
+    { label:"Segmento / Público", value:issue.segmento         }, 
     { label:"ID Cliente VIP",     value:issue.id_cliente_vip   },
     { label:"Aplicação",          value:issue.aplicacao        },
     { label:"Valor Ingresso",     value:issue.valor_ingresso   },
@@ -65,7 +66,7 @@ export default function PromoPage() {
     { label:"SLA Restante",       value:issue.sla_restante     },
     { label:"Descrição Benefício",value:issue.descricao_benef  },
     { label:"Pontos Críticos",    value:issue.pontos_criticos  },
-];
+  ];
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
