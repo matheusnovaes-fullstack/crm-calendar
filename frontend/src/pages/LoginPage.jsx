@@ -18,7 +18,7 @@ export default function LoginPage({ onLogin }) {
       localStorage.setItem("crm_email", email);
       onLogin(email);
     } else {
-      setErro("Email não autorizado. Use seu email corporativo.");
+      setErro("Email não autorizado.");
     }
   }
 
