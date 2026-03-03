@@ -48,7 +48,8 @@ async function buscarIssues(projeto) {
           "customfield_14439","customfield_14440",
           "customfield_12689",
           "customfield_14438", // Nome da Promoção
-          "customfield_14441", // Jogo
+          "customfield_11727", // Jogo ✅
+          "customfield_14441", // Segmento / Público ✅
           "customfield_17036", // ID Cliente VIP
           "customfield_14447", // Responsável campanha
           "customfield_14443", // Descrição do benefício
@@ -80,12 +81,10 @@ async function buscarIssues(projeto) {
         resolverCMDB(f.customfield_15094),
       ]);
 
-      // Casa legado pode ser select simples ou array
       const casa_legado = Array.isArray(f.customfield_12755)
         ? f.customfield_12755.map(c => c.value || c.name).filter(Boolean).join(", ")
         : f.customfield_12755?.value || f.customfield_12755?.name || null;
 
-      // Usa o primeiro que tiver valor
       const casa = casa_cmdb || casa_legado || casa2_cmdb || null;
 
       return {
@@ -106,7 +105,8 @@ async function buscarIssues(projeto) {
         sla_breached:     ciclo.breached || false,
         sla_restante:     ciclo.remainingTime?.friendly || null,
         nome_promocao:    f.customfield_14438 || null,
-        jogo:             f.customfield_14441 || null,
+        jogo:             f.customfield_11727?.value || f.customfield_11727 || null, // ✅
+        segmento:         f.customfield_14441?.value || f.customfield_14441 || null, // ✅
         brand:            f.customfield_12755 || null,
         id_cliente_vip:   f.customfield_17036 || null,
         descricao_benef:  extrairTexto(f.customfield_14443),
@@ -119,7 +119,7 @@ async function buscarIssues(projeto) {
         area:             f.customfield_11730 || null,
         relator_orig:     f.customfield_14810?.displayName || null,
         casa,
-        casa_debug: { casa_cmdb, casa_legado, casa2_cmdb }, // remover após confirmar
+        casa_debug: { casa_cmdb, casa_legado, casa2_cmdb },
       };
     }));
 
