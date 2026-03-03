@@ -1,12 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getIssues } from "../services/api";
-
-const SIDEBAR = [
-  { icon:"📅", label:"Calendário", path:"/"           },
-  { icon:"📋", label:"Campanhas",  path:"/campanhas"  },
-  { icon:"📊", label:"Relatórios", path:"/relatorios" },
-];
+import Sidebar from "../components/Sidebar";
+import { LayoutList, CheckCircle, XCircle, Clock, Loader } from "lucide-react";
 
 export default function RelatoriosPage() {
   const navigate = useNavigate();
@@ -35,7 +31,6 @@ export default function RelatoriosPage() {
   const encerradas = issues.filter(i => getStatus(i) === "encerrada");
   const agendadas  = issues.filter(i => getStatus(i) === "agendada");
 
-  // Campanhas por mês (data_inicio)
   const porMes = {};
   issues.forEach(i => {
     if (!i.data_inicio) return;
@@ -46,7 +41,6 @@ export default function RelatoriosPage() {
   const mesesOrdenados = Object.entries(porMes).sort(([a],[b]) => a.localeCompare(b));
   const maxMes         = Math.max(...mesesOrdenados.map(([,v]) => v), 1);
 
-  // Campanhas por componente
   const porComp = {};
   issues.forEach(i => {
     const k = i.componente || "Sem componente";
@@ -62,48 +56,17 @@ export default function RelatoriosPage() {
 
   const barColors = ["#6366F1","#8B5CF6","#A78BFA","#818CF8","#4F46E5"];
 
+  const kpis = [
+    { label:"Total de Campanhas", value:issues.length,     color:"#6366F1", Icon:LayoutList  },
+    { label:"Ativas agora",        value:ativas.length,     color:"#10B981", Icon:CheckCircle },
+    { label:"Encerradas",          value:encerradas.length, color:"#F87171", Icon:XCircle     },
+    { label:"Agendadas",           value:agendadas.length,  color:"#A78BFA", Icon:Clock       },
+  ];
+
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
+      <Sidebar />
 
-      {/* Sidebar */}
-      <aside style={{ width:240, background:"#050E1F", borderRight:"1px solid #0D1F3C", display:"flex", flexDirection:"column", flexShrink:0 }}>
-        <div style={{ padding:"24px 20px 20px", borderBottom:"1px solid #0D1F3C" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <div style={{ width:36, height:36, background:"linear-gradient(135deg,#6366F1,#8B5CF6)", borderRadius:10, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, boxShadow:"0 4px 12px rgba(99,102,241,0.4)" }}>♠</div>
-            <div>
-              <p style={{ fontSize:14, fontWeight:800, color:"#F1F5F9" }}>CRM Calendar</p>
-              <p style={{ fontSize:10, color:"#6366F1", marginTop:1 }}>iGaming · Campanhas</p>
-            </div>
-          </div>
-        </div>
-        <nav style={{ padding:"16px 12px", flex:1 }}>
-          <p style={{ fontSize:9, color:"#1E3A5F", fontWeight:700, letterSpacing:1.5, padding:"0 8px 10px" }}>MENU</p>
-          {SIDEBAR.map(item => {
-            const active = item.path === "/relatorios";
-            return (
-              <div key={item.label} onClick={() => navigate(item.path)} style={{
-                display:"flex", alignItems:"center", gap:10, padding:"10px 12px",
-                borderRadius:8, marginBottom:2,
-                background: active ? "linear-gradient(135deg,rgba(99,102,241,0.2),rgba(139,92,246,0.1))" : "transparent",
-                color: active ? "#A5B4FC" : "#334155",
-                fontWeight: active ? 600 : 400, fontSize:13, cursor:"pointer",
-                border: active ? "1px solid rgba(99,102,241,0.2)" : "1px solid transparent",
-              }}>
-                {item.icon} {item.label}
-              </div>
-            );
-          })}
-        </nav>
-        <div style={{ padding:"16px 20px", borderTop:"1px solid #0D1F3C", display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:30, height:30, background:"linear-gradient(135deg,#6366F1,#8B5CF6)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700 }}>C</div>
-          <div>
-            <p style={{ fontSize:12, fontWeight:600, color:"#94A3B8" }}>Time CRM</p>
-            <p style={{ fontSize:10, color:"#1E3A5F" }}>Ana Gaming</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main */}
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
         <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
           <div style={{ width:3, height:20, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
@@ -112,24 +75,23 @@ export default function RelatoriosPage() {
         <p style={{ fontSize:12, color:"#334155", paddingLeft:13, marginBottom:24 }}>Visão analítica das campanhas promocionais</p>
 
         {loading ? (
-          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:80 }}>⏳ Carregando dados...</div>
+          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:80, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            <Loader size={16} strokeWidth={2} style={{ animation:"spin 1s linear infinite" }} />
+            Carregando dados...
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+          </div>
         ) : (
           <>
             {/* KPIs */}
             <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
-              {[
-                { label:"Total de Campanhas", value:issues.length,     color:"#6366F1", icon:"📋" },
-                { label:"Ativas agora",        value:ativas.length,     color:"#10B981", icon:"🟢" },
-                { label:"Encerradas",          value:encerradas.length, color:"#F87171", icon:"🔴" },
-                { label:"Agendadas",           value:agendadas.length,  color:"#A78BFA", icon:"⏳" },
-              ].map(k => (
+              {kpis.map(k => (
                 <div key={k.label} style={{ background:"#050E1F", border:`1px solid ${k.color}22`, borderRadius:12, padding:"18px 20px" }}>
                   <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
                     <div>
                       <p style={{ fontSize:11, color:"#334155", marginBottom:8 }}>{k.label}</p>
                       <p style={{ fontSize:32, fontWeight:800, color:k.color }}>{k.value}</p>
                     </div>
-                    <span style={{ fontSize:22, opacity:0.5 }}>{k.icon}</span>
+                    <k.Icon size={22} color={k.color} strokeWidth={1.5} style={{ opacity:0.5 }} />
                   </div>
                   <div style={{ marginTop:12, height:3, background:"#0D1F3C", borderRadius:2 }}>
                     <div style={{ height:3, background:k.color, borderRadius:2, width:`${issues.length > 0 ? (k.value/issues.length)*100 : 0}%`, transition:"width 0.5s" }} />
@@ -140,7 +102,7 @@ export default function RelatoriosPage() {
 
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
 
-              {/* Gráfico por mês */}
+              {/* Por mês */}
               <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
                   <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
@@ -165,7 +127,7 @@ export default function RelatoriosPage() {
                 )}
               </div>
 
-              {/* Gráfico por componente */}
+              {/* Por componente */}
               <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
                   <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
