@@ -19,7 +19,6 @@ export default function CalendarPage({ onAbrirTutorial }) {
   const { notificacao, confirmar }        = useNotificacoes(issues);
 
   const hoje = new Date();
-
   const [ano, setAno] = useState(() => parseInt(searchParams.get("ano")) || hoje.getFullYear());
   const [mes, setMes] = useState(() => parseInt(searchParams.get("mes")) || hoje.getMonth());
 
@@ -81,7 +80,6 @@ export default function CalendarPage({ onAbrirTutorial }) {
               ))}
             </div>
 
-            {/* Botão Tutorial */}
             <button onClick={onAbrirTutorial} style={{
               display:"flex", alignItems:"center", gap:6,
               background:"#0A1628", border:"1px solid #0D1F3C",
@@ -95,7 +93,6 @@ export default function CalendarPage({ onAbrirTutorial }) {
               <HelpCircle size={13} strokeWidth={2} /> Tutorial
             </button>
 
-            {/* Botão Sincronizar */}
             <button onClick={recarregar} style={{
               display:"flex", alignItems:"center", gap:7,
               background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff",
@@ -214,7 +211,6 @@ export default function CalendarPage({ onAbrirTutorial }) {
       </main>
 
       <NotificacaoPopup notificacao={notificacao} onConfirmar={confirmar} />
-
       <style>{`@keyframes glow{0%,100%{opacity:1}50%{opacity:0.6}}`}</style>
     </div>
   );
