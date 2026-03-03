@@ -3,8 +3,33 @@ const axios            = require("axios");
 const { buscarIssues } = require("../services/jiraService");
 const router           = express.Router();
 
+const auth = {
+  username: process.env.JIRA_EMAIL,
+  password: process.env.JIRA_TOKEN
+};
+
 let cache = {};
 
+// Proxy de anexos autenticados
+router.get("/anexo-proxy", async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).json({ error: "URL não informada" });
+
+  try {
+    const response = await axios.get(url, {
+      auth,
+      responseType: "stream",
+      headers: { Accept: "*/*" },
+    });
+    res.setHeader("Content-Type", response.headers["content-type"] || "application/octet-stream");
+    res.setHeader("Content-Disposition", response.headers["content-disposition"] || "attachment");
+    response.data.pipe(res);
+  } catch (err) {
+    res.status(403).json({ error: "Sem permissão para acessar o anexo." });
+  }
+});
+
+// Busca issues por projeto
 router.get("/:projeto", async (req, res) => {
   const { projeto } = req.params;
   if (projeto === "attachments") return;
@@ -23,13 +48,14 @@ router.get("/:projeto", async (req, res) => {
   }
 });
 
+// Busca anexos de um ticket
 router.get("/:key/attachments", async (req, res) => {
   const { key } = req.params;
   try {
     const { data } = await axios.get(
       `https://${process.env.JIRA_DOMAIN}/rest/api/3/issue/${key}`,
       {
-        auth: { username: process.env.JIRA_EMAIL, password: process.env.JIRA_TOKEN },
+        auth,
         headers: { Accept: "application/json" },
         params: { fields: "attachment" }
       }
