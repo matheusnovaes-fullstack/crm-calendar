@@ -4,9 +4,14 @@ import { getIssues, getAnexos } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
 
+function proxyUrl(url) {
+  if (!url) return url;
+  return `/api/issues/anexo-proxy?url=${encodeURIComponent(url)}`;
+}
+
 export default function PromoPage() {
-  const { key }   = useParams();
-  const navigate  = useNavigate();
+  const { key }    = useParams();
+  const navigate   = useNavigate();
   const [searchParams] = useSearchParams();
   const [issue,   setIssue]   = useState(null);
   const [anexos,  setAnexos]  = useState([]);
@@ -18,9 +23,9 @@ export default function PromoPage() {
   const voltarUrl = from ? `/day/${from}?mes=${mes}&ano=${ano}` : "/";
 
   useEffect(() => {
-    Promise.all([getIssues("CP"), getAnexos(key).catch(() => ({ data:[] }))])
+    Promise.all([getIssues("CP"), getAnexos(key).catch(() => ({ data: [] }))])
       .then(([issuesRes, anexosRes]) => {
-        setIssue((issuesRes.data?.data||[]).find(i => i.chave===key) || null);
+        setIssue((issuesRes.data?.data || []).find(i => i.chave === key) || null);
         setAnexos(anexosRes.data || []);
       })
       .finally(() => setLoading(false));
@@ -50,8 +55,8 @@ export default function PromoPage() {
     { label:"Componente",         value:issue.componente       },
     { label:"Prioridade",         value:issue.prioridade       },
     { label:"Casa",               value:issue.casa             },
-    { label:"Jogo",               value:issue.jogo             }, 
-    { label:"Segmento / Público", value:issue.segmento         }, 
+    { label:"Jogo",               value:issue.jogo             },
+    { label:"Segmento / Público", value:issue.segmento         },
     { label:"ID Cliente VIP",     value:issue.id_cliente_vip   },
     { label:"Aplicação",          value:issue.aplicacao        },
     { label:"Valor Ingresso",     value:issue.valor_ingresso   },
@@ -125,14 +130,26 @@ export default function PromoPage() {
                     const isImg = a.mimeType?.startsWith("image/");
                     return (
                       <div key={a.id} style={{ background:"#030912", borderRadius:10, overflow:"hidden", border:"1px solid #0D1F3C" }}>
-                        {isImg && <img src={a.content} alt={a.filename} style={{ width:"100%", maxHeight:160, objectFit:"cover" }} onError={e => e.target.style.display="none"} />}
+                        {isImg && (
+                          <img
+                            src={proxyUrl(a.content)}
+                            alt={a.filename}
+                            style={{ width:"100%", maxHeight:160, objectFit:"cover" }}
+                            onError={e => e.target.style.display="none"}
+                          />
+                        )}
                         <div style={{ padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
                           <div>
                             <p style={{ fontSize:11, color:"#475569", wordBreak:"break-all" }}>{a.filename}</p>
                             <p style={{ fontSize:10, color:"#1E3A5F", marginTop:2 }}>{(a.size/1024).toFixed(1)} KB</p>
                           </div>
-                          <a href={a.content} download={a.filename} target="_blank" rel="noreferrer"
-                            style={{ background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff", borderRadius:7, padding:"7px 14px", fontSize:11, textDecoration:"none", fontWeight:600, whiteSpace:"nowrap" }}>
+                          <a
+                            href={proxyUrl(a.content)}
+                            download={a.filename}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{ background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff", borderRadius:7, padding:"7px 14px", fontSize:11, textDecoration:"none", fontWeight:600, whiteSpace:"nowrap" }}
+                          >
                             ⬇ Baixar
                           </a>
                         </div>
