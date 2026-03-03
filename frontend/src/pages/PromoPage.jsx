@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { getIssues, getAnexos } from "../services/api";
+import { getIssues, getAnexos, anexoProxy } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
-
-function proxyUrl(url) {
-  if (!url) return url;
-  return `/api/issues/anexo-proxy?url=${encodeURIComponent(url)}`;
-}
 
 export default function PromoPage() {
   const { key }    = useParams();
@@ -132,7 +127,7 @@ export default function PromoPage() {
                       <div key={a.id} style={{ background:"#030912", borderRadius:10, overflow:"hidden", border:"1px solid #0D1F3C" }}>
                         {isImg && (
                           <img
-                            src={proxyUrl(a.content)}
+                            src={anexoProxy(a.content)}
                             alt={a.filename}
                             style={{ width:"100%", maxHeight:160, objectFit:"cover" }}
                             onError={e => e.target.style.display="none"}
@@ -144,7 +139,7 @@ export default function PromoPage() {
                             <p style={{ fontSize:10, color:"#1E3A5F", marginTop:2 }}>{(a.size/1024).toFixed(1)} KB</p>
                           </div>
                           <a
-                            href={proxyUrl(a.content)}
+                            href={anexoProxy(a.content)}
                             download={a.filename}
                             target="_blank"
                             rel="noreferrer"
