@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import CalendarPage   from "./pages/CalendarPage";
 import DayPage        from "./pages/DayPage";
@@ -5,10 +6,16 @@ import PromoPage      from "./pages/PromoPage";
 import CampanhasPage  from "./pages/CampanhasPage";
 import RelatoriosPage from "./pages/RelatoriosPage";
 import Tutorial       from "./components/Tutorial";
+import LoginPage      from "./pages/LoginPage";
 import { useTutorial } from "./hooks/useTutorial";
 
 function AppContent() {
   const { visivel, abrir, fechar } = useTutorial();
+  const [email, setEmail] = useState(localStorage.getItem("crm_email") || "");
+
+  if (!email) {
+    return <LoginPage onLogin={setEmail} />;
+  }
 
   return (
     <>
