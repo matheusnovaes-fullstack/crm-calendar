@@ -14,16 +14,24 @@ const PARTICLES = Array.from({ length: 18 }, (_, i) => ({
   size: `${2 + Math.random() * 3}px`,
 }));
 
+const IconCalendar = ({ size = 26 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" />
+    <path d="M16 2v4M8 2v4M3 10h18" />
+    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01" strokeWidth="2.5" />
+  </svg>
+);
+
 export default function LoginPage({ onLogin }) {
-  const [email, setEmail]         = useState("");
-  const [erro, setErro]           = useState("");
-  const [loading, setLoading]     = useState(false);
-  const [bemVindo, setBemVindo]   = useState(false);
-  const [nome, setNome]           = useState("");
+  const [email, setEmail]             = useState("");
+  const [erro, setErro]               = useState("");
+  const [loading, setLoading]         = useState(false);
+  const [bemVindo, setBemVindo]       = useState(false);
+  const [nome, setNome]               = useState("");
   const [cardOpacity, setCardOpacity] = useState(0);
-  const [cardY, setCardY]         = useState(24);
+  const [cardY, setCardY]             = useState(24);
   const [welcomePhase, setWelcomePhase] = useState(0);
-  // 0 = oculto, 1 = fade-in, 2 = visível, 3 = fade-out
+  // 0 = oculto | 1 = iniciando | 2 = visível | 3 = fade-out
 
   useEffect(() => {
     setTimeout(() => { setCardOpacity(1); setCardY(0); }, 100);
@@ -51,9 +59,10 @@ export default function LoginPage({ onLogin }) {
     }
   }
 
-  const welcomeOpacity = welcomePhase === 0 ? 0 : welcomePhase === 1 ? 0 : welcomePhase === 2 ? 1 : 0;
-  const welcomeScale   = welcomePhase === 0 ? 0.92 : welcomePhase === 1 ? 0.92 : 1;
+  const welcomeOpacity = welcomePhase === 2 ? 1 : 0;
+  const welcomeScale   = welcomePhase === 2 ? 1 : 0.92;
 
+  // ─── TELA DE BEM-VINDO ───────────────────────────────────────────
   if (bemVindo) {
     return (
       <>
@@ -65,14 +74,15 @@ export default function LoginPage({ onLogin }) {
             100% { transform: translateY(-10vh) scale(1); opacity: 0; }
           }
           @keyframes pulseRing {
-            0%   { transform: scale(0.8); opacity: 0.8; }
-            100% { transform: scale(2.2); opacity: 0; }
+            0%   { transform: scale(0.8); opacity: 0.6; }
+            100% { transform: scale(2.4); opacity: 0; }
           }
           @keyframes shimmer {
             0%   { background-position: -200% center; }
             100% { background-position: 200% center; }
           }
         `}</style>
+
         <div style={{
           position:"fixed", inset:0,
           background:"radial-gradient(ellipse at 50% 40%, #0f0c29 0%, #020817 60%, #000 100%)",
@@ -90,11 +100,11 @@ export default function LoginPage({ onLogin }) {
             }} />
           ))}
 
-          {/* Anel pulsante */}
-          <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.4)", animation:"pulseRing 2s ease-out infinite" }} />
-          <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.2)", animation:"pulseRing 2s 0.6s ease-out infinite" }} />
+          {/* Anéis pulsantes */}
+          <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.35)", animation:"pulseRing 2s ease-out infinite" }} />
+          <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.2)",  animation:"pulseRing 2s 0.7s ease-out infinite" }} />
 
-          {/* Conteúdo */}
+          {/* Conteúdo central */}
           <div style={{
             textAlign:"center", zIndex:10,
             transition:"opacity 0.8s cubic-bezier(.4,0,.2,1), transform 0.8s cubic-bezier(.4,0,.2,1)",
@@ -105,8 +115,10 @@ export default function LoginPage({ onLogin }) {
               width:72, height:72, borderRadius:"50%", margin:"0 auto 24px",
               background:"linear-gradient(135deg,#6366f1,#8b5cf6)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:32, boxShadow:"0 0 40px rgba(99,102,241,0.5)",
-            }}>🎯</div>
+              boxShadow:"0 0 40px rgba(99,102,241,0.5)",
+            }}>
+              <IconCalendar size={34} />
+            </div>
 
             <h1 style={{
               fontSize:"2.2rem", fontWeight:800, margin:"0 0 8px",
@@ -119,15 +131,12 @@ export default function LoginPage({ onLogin }) {
               Bem-vindo, {nome}!
             </h1>
 
-            <p style={{
-              color:"#475569", fontSize:"0.95rem",
-              fontFamily:"Inter, sans-serif", letterSpacing:"0.5px",
-            }}>
+            <p style={{ color:"#475569", fontSize:"0.95rem", fontFamily:"Inter, sans-serif", letterSpacing:"0.5px" }}>
               Entrando no CRM Calendar...
             </p>
 
             {/* Barra de progresso */}
-            <div style={{ marginTop:28, width:200, margin:"28px auto 0", background:"rgba(99,102,241,0.15)", borderRadius:99, height:3, overflow:"hidden" }}>
+            <div style={{ marginTop:28, width:200, margin:"28px auto 0", background:"rgba(99,102,241,0.12)", borderRadius:99, height:3, overflow:"hidden" }}>
               <div style={{
                 height:"100%", borderRadius:99,
                 background:"linear-gradient(90deg,#6366f1,#8b5cf6)",
@@ -142,6 +151,7 @@ export default function LoginPage({ onLogin }) {
     );
   }
 
+  // ─── TELA DE LOGIN ───────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -190,8 +200,6 @@ export default function LoginPage({ onLogin }) {
           letter-spacing: 0.3px;
           transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
           box-shadow: 0 4px 24px rgba(99,102,241,0.35);
-          position: relative;
-          overflow: hidden;
         }
         .login-btn:hover:not(:disabled) {
           opacity: 0.92;
@@ -209,7 +217,7 @@ export default function LoginPage({ onLogin }) {
         overflow:"hidden", position:"relative",
       }}>
 
-        {/* Grid animado de fundo */}
+        {/* Grid animado */}
         <div style={{
           position:"absolute", inset:0, opacity:0.04,
           backgroundImage:`linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)`,
@@ -243,19 +251,21 @@ export default function LoginPage({ onLogin }) {
           borderRadius:20, padding:"2.5rem 2rem",
           width:360, boxSizing:"border-box",
           boxShadow:"0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.08)",
-          transition:`opacity 0.6s ease, transform 0.6s ease`,
+          transition:"opacity 0.6s ease, transform 0.6s ease",
           opacity: cardOpacity,
           transform: `translateY(${cardY}px)`,
         }}>
 
-          {/* Logo / ícone */}
+          {/* Ícone + título */}
           <div style={{ textAlign:"center", marginBottom:"1.75rem" }}>
             <div style={{
               width:56, height:56, borderRadius:16, margin:"0 auto 14px",
               background:"linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%)",
               display:"flex", alignItems:"center", justifyContent:"center",
-              fontSize:26, boxShadow:"0 8px 24px rgba(99,102,241,0.4)",
-            }}>🎯</div>
+              boxShadow:"0 8px 24px rgba(99,102,241,0.4)",
+            }}>
+              <IconCalendar size={26} />
+            </div>
             <h2 style={{ color:"#f1f5f9", fontSize:"1.35rem", fontWeight:800, margin:"0 0 4px", letterSpacing:"-0.3px" }}>
               CRM Calendar
             </h2>
@@ -264,7 +274,7 @@ export default function LoginPage({ onLogin }) {
             </p>
           </div>
 
-          {/* Linha divisória */}
+          {/* Divisória */}
           <div style={{ height:1, background:"linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent)", marginBottom:"1.75rem" }} />
 
           <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"0.85rem" }}>
@@ -303,7 +313,6 @@ export default function LoginPage({ onLogin }) {
             </button>
           </form>
 
-          {/* Rodapé */}
           <p style={{ textAlign:"center", color:"#1e293b", fontSize:"0.72rem", marginTop:"1.5rem", marginBottom:0, letterSpacing:"0.3px" }}>
             Acesso restrito a domínios autorizados
           </p>
