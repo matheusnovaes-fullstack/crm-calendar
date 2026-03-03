@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { getIssues } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
+import { Search, User, Zap, FolderOpen, Home, ArrowLeft } from "lucide-react";
 
 export default function DayPage() {
   const { date }  = useParams();
@@ -12,7 +13,6 @@ export default function DayPage() {
   const [loading, setLoading] = useState(true);
   const [busca,   setBusca]   = useState("");
 
-  // Preserva mes/ano para voltar corretamente
   const mes = searchParams.get("mes");
   const ano = searchParams.get("ano");
   const voltarUrl = mes && ano ? `/?mes=${mes}&ano=${ano}` : "/";
@@ -55,8 +55,10 @@ export default function DayPage() {
           <div style={{ display:"flex", alignItems:"flex-start", gap:14, marginBottom:24 }}>
             <button onClick={() => navigate(voltarUrl)} style={{
               background:"#050E1F", color:"#475569", border:"1px solid #0D1F3C",
-              borderRadius:9, padding:"8px 14px", cursor:"pointer", fontSize:16, marginTop:2
-            }}>←</button>
+              borderRadius:9, padding:"8px 14px", cursor:"pointer", display:"flex", alignItems:"center", marginTop:2
+            }}>
+              <ArrowLeft size={16} strokeWidth={2} />
+            </button>
             <div>
               <h1 style={{ fontSize:18, fontWeight:800, color:"#F1F5F9", textTransform:"capitalize" }}>{formatDate(date)}</h1>
               <p style={{ color:"#334155", fontSize:12, marginTop:4 }}>
@@ -80,8 +82,9 @@ export default function DayPage() {
             </div>
           )}
 
+          {/* Busca */}
           <div style={{ position:"relative", marginBottom:16 }}>
-            <span style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }}>🔍</span>
+            <Search size={14} strokeWidth={2} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }} />
             <input value={busca} onChange={e => setBusca(e.target.value)}
               placeholder="Buscar por ID, nome ou marca..."
               style={{ width:"100%", padding:"11px 16px 11px 40px", borderRadius:10, border:"1px solid #0D1F3C", background:"#050E1F", color:"#F1F5F9", fontSize:13, outline:"none", boxSizing:"border-box" }}
@@ -91,7 +94,7 @@ export default function DayPage() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>⏳ Carregando...</div>
+            <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>Carregando...</div>
           ) : filtradas.length === 0 ? (
             <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>Nenhuma campanha encontrada.</div>
           ) : filtradas.map(issue => (
@@ -105,13 +108,17 @@ export default function DayPage() {
                 <div style={{ flex:1 }}>
                   <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
                     <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>{issue.chave}</span>
-                    {issue.casa && <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)" }}>🏠 {issue.casa}</span>}
+                    {issue.casa && (
+                      <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                        <Home size={10} strokeWidth={2} /> {issue.casa}
+                      </span>
+                    )}
                   </div>
                   <h3 style={{ fontSize:15, fontWeight:700, color:"#F1F5F9", marginBottom:7 }}>{issue.resumo}</h3>
                   <div style={{ display:"flex", gap:16, fontSize:11, color:"#334155", flexWrap:"wrap" }}>
-                    <span>👤 {issue.responsavel || "—"}</span>
-                    <span>⚡ {issue.prioridade  || "—"}</span>
-                    <span>📁 {issue.catalogo    || "—"}</span>
+                    <span style={{ display:"flex", alignItems:"center", gap:4 }}><User size={11} strokeWidth={2} /> {issue.responsavel || "—"}</span>
+                    <span style={{ display:"flex", alignItems:"center", gap:4 }}><Zap size={11} strokeWidth={2} /> {issue.prioridade  || "—"}</span>
+                    <span style={{ display:"flex", alignItems:"center", gap:4 }}><FolderOpen size={11} strokeWidth={2} /> {issue.catalogo || "—"}</span>
                   </div>
                 </div>
                 <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
