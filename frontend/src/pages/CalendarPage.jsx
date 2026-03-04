@@ -1,10 +1,10 @@
-import { useState } from "react";
+// CalendarPage.jsx
+import { useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useIssues } from "../hooks/useIssues";
-import { useNotificacoes } from "../hooks/useNotificacoes";
+import { useIssuesCtx, useNotificacoesCtx } from "../App";
 import Sidebar from "../components/Sidebar";
 import NotificacaoPopup from "../components/NotificacaoPopup";
-import { RefreshCw, AlertTriangle, HelpCircle } from "lucide-react";
+import { RefreshCw, AlertTriangle, HelpCircle, Search, User } from "lucide-react";
 
 function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function getFirstDay(y, m)    { return new Date(y, m, 1).getDay(); }
@@ -12,16 +12,58 @@ function getFirstDay(y, m)    { return new Date(y, m, 1).getDay(); }
 const MESES = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
                "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 
+// ── Tooltip ────────────────────────────────────────────────
+function Tooltip({ campanhas }) {
+  if (!campanhas.length) return null;
+  return (
+    <div style={{
+      position:"absolute", zIndex:999, bottom:"calc(100% + 8px)", left:"50%",
+      transform:"translateX(-50%)",
+      background:"#0A1628", border:"1px solid #1E3A5F",
+      borderRadius:8, padding:"8px 12px", minWidth:180, maxWidth:240,
+      boxShadow:"0 8px 24px rgba(0,0,0,0.6)", pointerEvents:"none",
+    }}>
+      {campanhas.map(c => (
+        <div key={c.chave} style={{ marginBottom:6, paddingBottom:6, borderBottom:"1px solid #0D1F3C" }}>
+          <p style={{ fontSize:10, fontWeight:700, color:"#818CF8", marginBottom:2 }}>{c.chave}</p>
+          <p style={{ fontSize:11, color:"#CBD5E1", lineHeight:1.4 }}>{c.resumo || c.chave}</p>
+          <p style={{ fontSize:10, color:
+            c.statusDinamico==="ativa" ? "#34D399" :
+            c.statusDinamico==="encerrada" ? "#F87171" : "#A78BFA",
+            marginTop:2, fontWeight:600, textTransform:"uppercase"
+          }}>{c.statusDinamico}</p>
+        </div>
+      ))}
+      {/* Seta */}
+      <div style={{
+        position:"absolute", bottom:-5, left:"50%", transform:"translateX(-50%)",
+        width:10, height:10, background:"#0A1628",
+        border:"1px solid #1E3A5F", borderTop:"none", borderLeft:"none",
+        rotate:"45deg"
+      }} />
+    </div>
+  );
+}
+
 export default function CalendarPage({ onAbrirTutorial }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { issues, newPromos, recarregar } = useIssues("CP");
-  const { notificacao, confirmar, historico, totalNaoLidas, marcarLidas } = useNotificacoes(issues);
+  // ── Consome contexto global (sem nova requisição) ──
+  const { issues, newPromos, recarregar } = useIssuesCtx();
+  const { notificacao, confirmar, historico, totalNaoLidas, marcarLidas } = useNotificacoesCtx();
 
   const hoje = new Date();
   const [ano, setAno] = useState(() => parseInt(searchParams.get("ano")) || hoje.getFullYear());
   const [mes, setMes] = useState(() => parseInt(searchParams.get("mes")) || hoje.getMonth());
+
+  // ── Novos estados: busca + filtro responsável ──────────
+  const [busca,        setBusca]        = useState("");
+  const [filtroResp,   setFiltroResp]   = useState("todos");
+  const [tooltipDia,   setTooltipDia]   = useState(null); // dia com tooltip aberto
+
+  // Lista de responsáveis únicos para o select
+  const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
 
   function navMes(dir) {
     let novoMes = mes + dir;
@@ -33,12 +75,22 @@ export default function CalendarPage({ onAbrirTutorial }) {
     setSearchParams({ mes: novoMes, ano: novoAno });
   }
 
+  // Issues já filtradas por busca + responsável
+  const issuesFiltradas = issues.filter(i => {
+    const matchResp  = filtroResp === "todos" || i.responsavel === filtroResp;
+    const matchBusca = busca === "" ||
+      i.chave?.toLowerCase().includes(busca.toLowerCase()) ||
+      (i.resumo||"").toLowerCase().includes(busca.toLowerCase());
+    return matchResp && matchBusca;
+  });
+
   function campanhasNoDia(dia) {
     const data = new Date(ano, mes, dia, 12);
-    return issues.filter(i => {
+    return issuesFiltradas.filter(i => {
       if (!i.data_inicio || !i.data_resolucao) return false;
       const s = new Date(i.data_inicio);  s.setHours(0,0,0,0);
       const e = new Date(i.data_resolucao); e.setHours(23,59,59,999);
+      if (e < s) return false; // datas invertidas: ignora
       return data >= s && data <= e;
     });
   }
@@ -47,15 +99,13 @@ export default function CalendarPage({ onAbrirTutorial }) {
   const diasNoMes   = getDaysInMonth(ano, mes);
   const primeiroDia = getFirstDay(ano, mes);
 
-  // Usa statusDinamico do useIssues para contagem precisa
-  const campsMes   = issues.filter(i => { if (!i.data_inicio) return false; const d = new Date(i.data_inicio); return d.getFullYear()===ano && d.getMonth()===mes; });
+  const campsMes   = issuesFiltradas.filter(i => { if (!i.data_inicio) return false; const d = new Date(i.data_inicio); return d.getFullYear()===ano && d.getMonth()===mes; });
   const ativas     = campsMes.filter(i => i.statusDinamico === "ativa").length;
   const encerradas = campsMes.filter(i => i.statusDinamico === "encerrada").length;
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
 
-      {/* Sidebar recebe o historico do sininho */}
       <Sidebar
         historico={historico}
         totalNaoLidas={totalNaoLidas}
@@ -65,7 +115,7 @@ export default function CalendarPage({ onAbrirTutorial }) {
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
         {/* Header */}
-        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:28 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
               <div style={{ width:3, height:20, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
@@ -92,8 +142,7 @@ export default function CalendarPage({ onAbrirTutorial }) {
               display:"flex", alignItems:"center", gap:6,
               background:"#0A1628", border:"1px solid #0D1F3C",
               borderRadius:9, padding:"9px 14px", cursor:"pointer",
-              fontSize:12, fontWeight:600, color:"#64748B",
-              marginLeft:16, transition:"all 0.15s"
+              fontSize:12, fontWeight:600, color:"#64748B", marginLeft:16, transition:"all 0.15s"
             }}
               onMouseEnter={e => { e.currentTarget.style.color="#94A3B8"; e.currentTarget.style.borderColor="#1E3A5F"; }}
               onMouseLeave={e => { e.currentTarget.style.color="#64748B"; e.currentTarget.style.borderColor="#0D1F3C"; }}
@@ -106,14 +155,51 @@ export default function CalendarPage({ onAbrirTutorial }) {
               background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff",
               border:"none", borderRadius:9, padding:"9px 18px",
               cursor:"pointer", fontSize:12, fontWeight:600,
-              boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
-              transition:"opacity 0.15s"
+              boxShadow:"0 4px 14px rgba(99,102,241,0.4)", transition:"opacity 0.15s"
             }}
               onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
               onMouseLeave={e => e.currentTarget.style.opacity="1"}
             >
               <RefreshCw size={13} strokeWidth={2.5} /> SINCRONIZAR
             </button>
+          </div>
+        </div>
+
+        {/* ── Barra de busca + filtro responsável ── */}
+        <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+          <div style={{ position:"relative", flex:1 }}>
+            <Search size={13} style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }} />
+            <input
+              value={busca}
+              onChange={e => setBusca(e.target.value)}
+              placeholder="Buscar campanha no calendário..."
+              style={{
+                width:"100%", padding:"9px 12px 9px 34px", borderRadius:9,
+                border:"1px solid #0D1F3C", background:"#050E1F",
+                color:"#F1F5F9", fontSize:12, outline:"none", boxSizing:"border-box"
+              }}
+              onFocus={e => e.target.style.borderColor="#6366F1"}
+              onBlur={e  => e.target.style.borderColor="#0D1F3C"}
+            />
+          </div>
+
+          <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
+            <User size={13} style={{ position:"absolute", left:12, color:"#1E3A5F", pointerEvents:"none" }} />
+            <select
+              value={filtroResp}
+              onChange={e => setFiltroResp(e.target.value)}
+              style={{
+                padding:"9px 12px 9px 32px", borderRadius:9,
+                border:"1px solid #0D1F3C", background:"#050E1F",
+                color: filtroResp === "todos" ? "#334155" : "#F1F5F9",
+                fontSize:12, outline:"none", cursor:"pointer", colorScheme:"dark"
+              }}
+            >
+              <option value="todos">Todos responsáveis</option>
+              {responsaveis.filter(r => r !== "todos").map(r => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
           </div>
         </div>
 
@@ -156,71 +242,61 @@ export default function CalendarPage({ onAbrirTutorial }) {
             const dateStr   = `${ano}-${String(mes+1).padStart(2,"0")}-${String(dia).padStart(2,"0")}`;
             const isHoje    = dateStr === hojeStr;
             const temNova   = campanhas.some(c => newPromos.includes(c.chave));
+            const showTip   = tooltipDia === dia;
 
-            // Contagem de status por dia para o card
             const nAtivas     = campanhas.filter(c => c.statusDinamico === "ativa").length;
             const nEncerradas = campanhas.filter(c => c.statusDinamico === "encerrada").length;
             const nAgendadas  = campanhas.filter(c => c.statusDinamico === "agendada").length;
 
             return (
               <div key={dia}
-                onClick={() => total > 0 && navigate(`/day/${dateStr}?mes=${mes}&ano=${ano}`)}
-                style={{
-                  background: temNova ? "linear-gradient(135deg,#FEF08A,#FDE047)"
-                            : isHoje  ? "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))"
-                            : total > 0 ? "#050E1F" : "#030912",
-                  border: isHoje  ? "1.5px solid rgba(99,102,241,0.6)"
-                        : temNova ? "1.5px solid #FBBF24"
-                        : total > 0 ? "1px solid #0D1F3C" : "1px solid #080F1E",
-                  borderRadius:10, padding:"10px 8px", minHeight:90,
-                  cursor: total > 0 ? "pointer" : "default",
-                  transition:"all 0.15s ease",
-                  animation: temNova ? "glow 1.5s infinite" : "none",
-                }}
-                onMouseEnter={e => { if (total>0&&!isHoje&&!temNova) { e.currentTarget.style.border="1px solid rgba(99,102,241,0.4)"; e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.background="#0A1628"; }}}
-                onMouseLeave={e => { if (!isHoje&&!temNova) { e.currentTarget.style.border=total>0?"1px solid #0D1F3C":"1px solid #080F1E"; e.currentTarget.style.transform="none"; e.currentTarget.style.background=total>0?"#050E1F":"#030912"; }}}
+                style={{ position:"relative" }}
+                onMouseEnter={() => total > 0 && setTooltipDia(dia)}
+                onMouseLeave={() => setTooltipDia(null)}
               >
-                {/* Número do dia */}
-                <div style={{ fontSize:12, fontWeight:700, color:isHoje?"#A5B4FC":temNova?"#713F12":total>0?"#94A3B8":"#1E3A5F" }}>{dia}</div>
+                {/* Tooltip */}
+                {showTip && <Tooltip campanhas={campanhas} />}
 
-                {/* Pills de status dinâmico */}
-                {total > 0 && (
-                  <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
+                <div
+                  onClick={() => total > 0 && navigate(`/day/${dateStr}?mes=${mes}&ano=${ano}`)}
+                  style={{
+                    background: temNova ? "linear-gradient(135deg,#FEF08A,#FDE047)"
+                              : isHoje  ? "linear-gradient(135deg,rgba(99,102,241,0.25),rgba(139,92,246,0.15))"
+                              : total > 0 ? "#050E1F" : "#030912",
+                    border: isHoje  ? "1.5px solid rgba(99,102,241,0.6)"
+                          : temNova ? "1.5px solid #FBBF24"
+                          : total > 0 ? "1px solid #0D1F3C" : "1px solid #080F1E",
+                    borderRadius:10, padding:"10px 8px", minHeight:90,
+                    cursor: total > 0 ? "pointer" : "default",
+                    transition:"all 0.15s ease",
+                    animation: temNova ? "glow 1.5s infinite" : "none",
+                  }}
+                  onMouseEnter={e => { if (total>0&&!isHoje&&!temNova) { e.currentTarget.style.border="1px solid rgba(99,102,241,0.4)"; e.currentTarget.style.transform="translateY(-2px)"; e.currentTarget.style.background="#0A1628"; }}}
+                  onMouseLeave={e => { if (!isHoje&&!temNova) { e.currentTarget.style.border=total>0?"1px solid #0D1F3C":"1px solid #080F1E"; e.currentTarget.style.transform="none"; e.currentTarget.style.background=total>0?"#050E1F":"#030912"; }}}
+                >
+                  <div style={{ fontSize:12, fontWeight:700, color:isHoje?"#A5B4FC":temNova?"#713F12":total>0?"#94A3B8":"#1E3A5F" }}>{dia}</div>
 
-                    {nAtivas > 0 && (
-                      <div style={{
-                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
-                        background:"rgba(99,102,241,0.15)", color:"#818CF8",
-                        border:"1px solid rgba(99,102,241,0.25)",
-                        display:"flex", alignItems:"center", justifyContent:"center", gap:3
-                      }}>
-                        <span style={{ width:5, height:5, borderRadius:"50%", background:"#818CF8", display:"inline-block", animation:"pulseDot 1.5s infinite" }} />
-                        {nAtivas > 1 ? `${nAtivas}x ` : ""}EM CURSO
-                      </div>
-                    )}
-
-                    {nAgendadas > 0 && (
-                      <div style={{
-                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
-                        background:"rgba(16,185,129,0.12)", color:"#34D399",
-                        border:"1px solid rgba(16,185,129,0.25)",
-                      }}>
-                        {nAgendadas > 1 ? `${nAgendadas}x ` : ""}INÍCIO
-                      </div>
-                    )}
-
-                    {nEncerradas > 0 && (
-                      <div style={{
-                        fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center",
-                        background:"rgba(239,68,68,0.12)", color:"#F87171",
-                        border:"1px solid rgba(239,68,68,0.25)",
-                      }}>
-                        {nEncerradas > 1 ? `${nEncerradas}x ` : ""}ENCERRAMENTO
-                      </div>
-                    )}
-
-                  </div>
-                )}
+                  {total > 0 && (
+                    <div style={{ marginTop:6, display:"flex", flexDirection:"column", gap:3 }}>
+                      {nAtivas > 0 && (
+                        <div style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center", background:"rgba(99,102,241,0.15)", color:"#818CF8", border:"1px solid rgba(99,102,241,0.25)", display:"flex", alignItems:"center", justifyContent:"center", gap:3 }}>
+                          <span style={{ width:5, height:5, borderRadius:"50%", background:"#818CF8", display:"inline-block", animation:"pulseDot 1.5s infinite" }} />
+                          {nAtivas > 1 ? `${nAtivas}x ` : ""}EM CURSO
+                        </div>
+                      )}
+                      {nAgendadas > 0 && (
+                        <div style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center", background:"rgba(16,185,129,0.12)", color:"#34D399", border:"1px solid rgba(16,185,129,0.25)" }}>
+                          {nAgendadas > 1 ? `${nAgendadas}x ` : ""}INÍCIO
+                        </div>
+                      )}
+                      {nEncerradas > 0 && (
+                        <div style={{ fontSize:9, fontWeight:700, padding:"2px 5px", borderRadius:4, textAlign:"center", background:"rgba(239,68,68,0.12)", color:"#F87171", border:"1px solid rgba(239,68,68,0.25)" }}>
+                          {nEncerradas > 1 ? `${nEncerradas}x ` : ""}ENCERRAMENTO
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
