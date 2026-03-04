@@ -8,13 +8,23 @@ import RelatoriosPage from "./pages/RelatoriosPage";
 import Tutorial       from "./components/Tutorial";
 import LoginPage      from "./pages/LoginPage";
 import { useTutorial } from "./hooks/useTutorial";
-import MANUTENCAO from "./config/manutencao";
+import MANUTENCAO     from "./config/manutencao";
 import ManutencaoScreen from "./components/ManutencaoScreen";
-
 
 function AppContent() {
   const { visivel, abrir, fechar } = useTutorial();
   const [email, setEmail] = useState(localStorage.getItem("crm_email") || "");
+
+  // ⚠️ Tela de manutenção — controle via src/config/manutencao.js
+  if (MANUTENCAO.ativo) {
+    return (
+      <ManutencaoScreen
+        titulo={MANUTENCAO.titulo}
+        mensagem={MANUTENCAO.mensagem}
+        previsao={MANUTENCAO.previsao}
+      />
+    );
+  }
 
   if (!email) {
     return <LoginPage onLogin={setEmail} />;
@@ -23,7 +33,7 @@ function AppContent() {
   return (
     <>
       <Routes>
-        <Route path="/"                 element={<CalendarPage   onAbrirTutorial={abrir} />} />
+        <Route path="/"                 element={<CalendarPage onAbrirTutorial={abrir} />} />
         <Route path="/day/:date"        element={<DayPage />}        />
         <Route path="/promo/:key"       element={<PromoPage />}      />
         <Route path="/campanhas"        element={<CampanhasPage />}  />
