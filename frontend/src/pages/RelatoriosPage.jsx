@@ -6,22 +6,20 @@ import { LayoutList, CheckCircle, XCircle, Clock, Loader, SlidersHorizontal, Dow
 
 const barColors = ["#6366F1","#8B5CF6","#A78BFA","#818CF8","#4F46E5"];
 
-// ─── Exportação ──────────────────────────────────────────────────────────────
-
 const CAMPOS_DISPONIVEIS = [
-  { key:"chave",           label:"Chave / ID"       },
-  { key:"resumo",          label:"Nome da campanha" },
-  { key:"status",          label:"Status"           },
-  { key:"casa",            label:"Marca / Casa"     },
-  { key:"data_inicio",     label:"Data início"      },
-  { key:"data_resolucao",  label:"Data encerramento"},
-  { key:"responsavel",     label:"Responsável"      },
-  { key:"prioridade",      label:"Prioridade"       },
-  { key:"componente",      label:"Componente"       },
-  { key:"catalogo",        label:"Catálogo"         },
-  { key:"request_type",    label:"Request Type"     },
-  { key:"segmento",        label:"Segmento"         },
-  { key:"valor_reais",     label:"Valor R$"         },
+  { key:"chave",          label:"Chave / ID"        },
+  { key:"resumo",         label:"Nome da campanha"  },
+  { key:"status",         label:"Status"            },
+  { key:"casa",           label:"Marca / Casa"      },
+  { key:"data_inicio",    label:"Data início"       },
+  { key:"data_resolucao", label:"Data encerramento" },
+  { key:"responsavel",    label:"Responsável"       },
+  { key:"prioridade",     label:"Prioridade"        },
+  { key:"componente",     label:"Componente"        },
+  { key:"catalogo",       label:"Catálogo"          },
+  { key:"request_type",   label:"Request Type"      },
+  { key:"segmento",       label:"Segmento"          },
+  { key:"valor_reais",    label:"Valor R$"          },
 ];
 
 function getStatusLabel(i) {
@@ -38,7 +36,7 @@ function exportarCSV(dados, campos) {
   const rows   = dados.map(i =>
     campos.map(c => {
       const v = c.key === "status" ? getStatusLabel(i) : (i[c.key] || "");
-      return `"${String(v).replace(/"/g,'""')}"`;
+      return '"' + String(v).replace(/"/g, '""') + '"';
     }).join(";")
   );
   const csv  = [header, ...rows].join("\n");
@@ -46,7 +44,7 @@ function exportarCSV(dados, campos) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `campanhas_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = "campanhas_" + new Date().toISOString().slice(0,10) + ".csv";
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -59,12 +57,10 @@ function exportarJSON(dados, campos) {
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href     = url;
-  a.download = `campanhas_${new Date().toISOString().slice(0,10)}.json`;
+  a.download = "campanhas_" + new Date().toISOString().slice(0,10) + ".json";
   a.click();
   URL.revokeObjectURL(url);
 }
-
-// ─── Modal de exportação ──────────────────────────────────────────────────────
 
 function ModalExport({ dados, onFechar }) {
   const [selecionados, setSelecionados] = useState(
@@ -80,6 +76,7 @@ function ModalExport({ dados, onFechar }) {
   }
 
   const camposSelecionados = CAMPOS_DISPONIVEIS.filter(c => selecionados.has(c.key));
+  const podeBaixar         = camposSelecionados.length > 0;
 
   return (
     <>
@@ -91,7 +88,6 @@ function ModalExport({ dados, onFechar }) {
         boxShadow:"0 24px 60px rgba(0,0,0,0.6)",
         animation:"slideUp 0.2s ease"
       }}>
-        {/* Header modal */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div>
             <p style={{ fontSize:14, fontWeight:800, color:"#F1F5F9" }}>Exportar Campanhas</p>
@@ -102,7 +98,6 @@ function ModalExport({ dados, onFechar }) {
           </button>
         </div>
 
-        {/* Seleção de campos */}
         <p style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:1, marginBottom:12 }}>SELECIONAR CAMPOS</p>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:24 }}>
           {CAMPOS_DISPONIVEIS.map(c => {
@@ -112,13 +107,13 @@ function ModalExport({ dados, onFechar }) {
                 display:"flex", alignItems:"center", gap:8,
                 padding:"8px 12px", borderRadius:8, cursor:"pointer",
                 background: ativo ? "rgba(99,102,241,0.12)" : "#030912",
-                border: `1px solid ${ativo ? "rgba(99,102,241,0.35)" : "#0D1F3C"}`,
+                border: ativo ? "1px solid rgba(99,102,241,0.35)" : "1px solid #0D1F3C",
                 transition:"all 0.12s"
               }}>
                 <div style={{
                   width:14, height:14, borderRadius:4, flexShrink:0,
                   background: ativo ? "linear-gradient(135deg,#6366F1,#4F46E5)" : "transparent",
-                  border: `1.5px solid ${ativo ? "#6366F1" : "#1E3A5F"}`,
+                  border: ativo ? "1.5px solid #6366F1" : "1.5px solid #1E3A5F",
                   display:"flex", alignItems:"center", justifyContent:"center"
                 }}>
                   {ativo && <span style={{ color:"#fff", fontSize:9, fontWeight:900 }}>✓</span>}
@@ -129,51 +124,48 @@ function ModalExport({ dados, onFechar }) {
           })}
         </div>
 
-        {/* Botões de exportação */}
         <div style={{ display:"flex", gap:10 }}>
           <button
-            disabled={camposSelecionados.length === 0}
+            disabled={!podeBaixar}
             onClick={() => { exportarCSV(dados, camposSelecionados); onFechar(); }}
             style={{
               flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
-              padding:"11px", borderRadius:10, cursor: camposSelecionados.length === 0 ? "not-allowed" : "pointer",
-              background: camposSelecionados.length === 0 ? "#0A1628" : "linear-gradient(135deg,#6366F1,#4F46E5)",
-              color: camposSelecionados.length === 0 ? "#334155" : "#fff",
+              padding:"11px", borderRadius:10,
+              cursor: podeBaixar ? "pointer" : "not-allowed",
+              background: podeBaixar ? "linear-gradient(135deg,#6366F1,#4F46E5)" : "#0A1628",
+              color: podeBaixar ? "#fff" : "#334155",
               border:"none", fontSize:12, fontWeight:700,
-              boxShadow: camposSelecionados.length > 0 ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
+              boxShadow: podeBaixar ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
               transition:"opacity 0.15s"
             }}
-            onMouseEnter={e => { if (camposSelecionados.length > 0) e.currentTarget.style.opacity="0.85"; }}
+            onMouseEnter={e => { if (podeBaixar) e.currentTarget.style.opacity="0.85"; }}
             onMouseLeave={e => e.currentTarget.style.opacity="1"}
           >
             <FileText size={14} strokeWidth={2} /> Exportar CSV
           </button>
           <button
-            disabled={camposSelecionados.length === 0}
+            disabled={!podeBaixar}
             onClick={() => { exportarJSON(dados, camposSelecionados); onFechar(); }}
             style={{
               flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
-              padding:"11px", borderRadius:10, cursor: camposSelecionados.length === 0 ? "not-allowed" : "pointer",
-              background: camposSelecionados.length === 0 ? "#0A1628" : "#0A1628",
-              color: camposSelecionados.length === 0 ? "#334155" : "#818CF8",
-              border:`1px solid ${camposSelecionados.length === 0 ? "#0D1F3C" : "rgba(99,102,241,0.3)"}`,
+              padding:"11px", borderRadius:10,
+              cursor: podeBaixar ? "pointer" : "not-allowed",
+              background:"#0A1628",
+              color: podeBaixar ? "#818CF8" : "#334155",
+              border: podeBaixar ? "1px solid rgba(99,102,241,0.3)" : "1px solid #0D1F3C",
               fontSize:12, fontWeight:700,
               transition:"all 0.15s"
             }}
-            onMouseEnter={e => { if (camposSelecionados.length > 0) { e.currentTarget.style.borderColor="rgba(99,102,241,0.6)"; e.currentTarget.style.color="#A5B4FC"; }}}
+            onMouseEnter={e => { if (podeBaixar) { e.currentTarget.style.borderColor="rgba(99,102,241,0.6)"; e.currentTarget.style.color="#A5B4FC"; }}}
             onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.3)"; e.currentTarget.style.color="#818CF8"; }}
           >
             <FileJson size={14} strokeWidth={2} /> Exportar JSON
           </button>
         </div>
-
-        <style>{`@keyframes slideUp { from { opacity:0; transform:translate(-50%,-46%); } to { opacity:1; transform:translate(-50%,-50%); } }`}</style>
       </div>
     </>
   );
 }
-
-// ─── Componente de filtro de data ─────────────────────────────────────────────
 
 function FiltroData({ label, value, onChange, onClear }) {
   return (
@@ -187,14 +179,17 @@ function FiltroData({ label, value, onChange, onClear }) {
           style={{
             width:"100%", padding:"9px 34px 9px 12px", borderRadius:8,
             border:"1px solid #0D1F3C", background:"#030912",
-            color: value ? "#F1F5F9" : "#334155", fontSize:12,
-            outline:"none", boxSizing:"border-box", colorScheme:"dark"
+            color: value ? "#F1F5F9" : "#334155",
+            fontSize:12, outline:"none", boxSizing:"border-box", colorScheme:"dark"
           }}
           onFocus={e => e.target.style.borderColor="#6366F1"}
           onBlur={e  => e.target.style.borderColor="#0D1F3C"}
         />
         {value && (
-          <button onClick={onClear} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:"#475569", padding:0 }}>
+          <button onClick={onClear} style={{
+            position:"absolute", right:8, top:"50%", transform:"translateY(-50%)",
+            background:"transparent", border:"none", cursor:"pointer", color:"#475569", padding:0
+          }}>
             <X size={13} strokeWidth={2} />
           </button>
         )}
@@ -203,16 +198,14 @@ function FiltroData({ label, value, onChange, onClear }) {
   );
 }
 
-// ─── Página principal ─────────────────────────────────────────────────────────
-
 export default function RelatoriosPage() {
   const navigate = useNavigate();
-  const [issues,        setIssues]        = useState([]);
-  const [loading,       setLoading]       = useState(true);
-  const [filtroAberto,  setFiltroAberto]  = useState(false);
-  const [modalExport,   setModalExport]   = useState(false);
-  const [dataInicio,    setDataInicio]    = useState("");
-  const [dataFim,       setDataFim]       = useState("");
+  const [issues,       setIssues]       = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [filtroAberto, setFiltroAberto] = useState(false);
+  const [modalExport,  setModalExport]  = useState(false);
+  const [dataInicio,   setDataInicio]   = useState("");
+  const [dataFim,      setDataFim]      = useState("");
 
   useEffect(() => {
     getIssues("CP")
@@ -232,7 +225,6 @@ export default function RelatoriosPage() {
 
   const temFiltroData = dataInicio || dataFim;
 
-  // Aplica filtro de data a todos os dados
   const issuesFiltradas = issues.filter(i => {
     let ok = true;
     if (dataInicio) {
@@ -256,7 +248,7 @@ export default function RelatoriosPage() {
   issuesFiltradas.forEach(i => {
     if (!i.data_inicio) return;
     const d   = new Date(i.data_inicio);
-    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    const key = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0");
     porMes[key] = (porMes[key] || 0) + 1;
   });
   const mesesOrdenados = Object.entries(porMes).sort(([a],[b]) => a.localeCompare(b));
@@ -282,6 +274,11 @@ export default function RelatoriosPage() {
     { label:"Agendadas",         value:agendadas.length,       color:"#A78BFA", Icon:Clock       },
   ];
 
+  // Variáveis extraídas para evitar template literals ternários no JSX
+  const filtroBtnBg     = filtroAberto || temFiltroData ? "rgba(99,102,241,0.15)" : "#050E1F";
+  const filtroBtnBorder = filtroAberto || temFiltroData ? "1px solid rgba(99,102,241,0.4)" : "1px solid #0D1F3C";
+  const filtroBtnColor  = filtroAberto || temFiltroData ? "#A5B4FC" : "#64748B";
+
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
       <Sidebar />
@@ -296,6 +293,209 @@ export default function RelatoriosPage() {
           </div>
 
           <div style={{ display:"flex", gap:10 }}>
-            {/* Filtro de data */}
             <button onClick={() => setFiltroAberto(v => !v)} style={{
               display:"flex", alignItems:"center", gap:6,
+              background: filtroBtnBg,
+              border: filtroBtnBorder,
+              borderRadius:9, padding:"9px 14px", cursor:"pointer",
+              fontSize:12, fontWeight:600,
+              color: filtroBtnColor,
+              transition:"all 0.15s", position:"relative"
+            }}>
+              <SlidersHorizontal size={13} strokeWidth={2} />
+              Filtrar por data
+              {temFiltroData && (
+                <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />
+              )}
+            </button>
+
+            <button onClick={() => setModalExport(true)} style={{
+              display:"flex", alignItems:"center", gap:7,
+              background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff",
+              border:"none", borderRadius:9, padding:"9px 18px",
+              cursor:"pointer", fontSize:12, fontWeight:600,
+              boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
+              transition:"opacity 0.15s"
+            }}
+              onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
+              onMouseLeave={e => e.currentTarget.style.opacity="1"}
+            >
+              <Download size={13} strokeWidth={2.5} /> EXPORTAR
+            </button>
+          </div>
+        </div>
+
+        <p style={{ fontSize:12, color:"#334155", paddingLeft:13, marginBottom:20 }}>
+          {temFiltroData
+            ? issuesFiltradas.length + " campanha(s) no período filtrado"
+            : "Visão analítica das campanhas promocionais"}
+        </p>
+
+        {/* Painel filtro */}
+        {filtroAberto && (
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:"20px 24px", marginBottom:20, animation:"fadeIn 0.15s ease" }}>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
+              <p style={{ fontSize:11, fontWeight:700, color:"#475569", letterSpacing:1 }}>FILTRO DE PERÍODO</p>
+              {temFiltroData && (
+                <button onClick={() => { setDataInicio(""); setDataFim(""); }} style={{
+                  background:"transparent", border:"1px solid #0D1F3C", borderRadius:6,
+                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600,
+                  color:"#475569", transition:"all 0.15s"
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor="#0D1F3C"; e.currentTarget.style.color="#475569"; }}
+                >
+                  Limpar
+                </button>
+              )}
+            </div>
+            <div style={{ display:"flex", gap:16, alignItems:"flex-end" }}>
+              <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} />
+              <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    />
+              <div style={{ paddingBottom:1 }}>
+                <p style={{ fontSize:10, color:"#334155", marginBottom:5 }}>RESULTADO</p>
+                <p style={{ fontSize:20, fontWeight:800, color:"#6366F1" }}>{issuesFiltradas.length}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {loading ? (
+          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:80, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
+            <Loader size={16} strokeWidth={2} style={{ animation:"spin 1s linear infinite" }} />
+            Carregando dados...
+          </div>
+        ) : (
+          <>
+            {/* KPIs */}
+            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
+              {kpis.map(k => (
+                <div key={k.label} style={{ background:"#050E1F", border:"1px solid " + k.color + "22", borderRadius:12, padding:"18px 20px" }}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                    <div>
+                      <p style={{ fontSize:11, color:"#334155", marginBottom:8 }}>{k.label}</p>
+                      <p style={{ fontSize:32, fontWeight:800, color:k.color }}>{k.value}</p>
+                    </div>
+                    <k.Icon size={22} color={k.color} strokeWidth={1.5} style={{ opacity:0.5 }} />
+                  </div>
+                  <div style={{ marginTop:12, height:3, background:"#0D1F3C", borderRadius:2 }}>
+                    <div style={{ height:3, background:k.color, borderRadius:2, width:(issuesFiltradas.length > 0 ? (k.value/issuesFiltradas.length)*100 : 0) + "%", transition:"width 0.5s" }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+
+              {/* Por mês */}
+              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
+                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR MÊS</p>
+                </div>
+                {mesesOrdenados.length === 0 ? (
+                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
+                ) : mesesOrdenados.map(([key, count], idx) => (
+                  <div key={key} style={{ marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                      <span style={{ fontSize:11, color:"#475569" }}>{formatMes(key)}</span>
+                      <span style={{ fontSize:11, fontWeight:700, color:"#6366F1" }}>{count}</span>
+                    </div>
+                    <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
+                      <div style={{ height:8, borderRadius:4, width:((count/maxMes)*100) + "%", background:"linear-gradient(90deg," + barColors[idx%barColors.length] + "," + barColors[(idx+1)%barColors.length] + ")", transition:"width 0.5s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Por componente */}
+              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
+                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR COMPONENTE</p>
+                </div>
+                {compOrdenados.length === 0 ? (
+                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
+                ) : compOrdenados.map(([comp, count], idx) => (
+                  <div key={comp} style={{ marginBottom:10 }}>
+                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                      <span style={{ fontSize:11, color:"#475569" }}>{comp}</span>
+                      <span style={{ fontSize:11, fontWeight:700, color:barColors[idx%barColors.length] }}>{count}</span>
+                    </div>
+                    <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
+                      <div style={{ height:8, borderRadius:4, width:((count/maxComp)*100) + "%", background:barColors[idx%barColors.length], transition:"width 0.5s" }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Últimas encerradas */}
+              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#F87171,#EF4444)", borderRadius:2 }} />
+                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ÚLTIMAS ENCERRADAS</p>
+                </div>
+                {encerradas.length === 0 ? (
+                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma encerrada</p>
+                ) : encerradas.slice(0,5).map(i => (
+                  <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
+                    style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+                    onMouseLeave={e => e.currentTarget.style.opacity="1"}
+                  >
+                    <div>
+                      <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+                      <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,40)}{(i.resumo||"").length>40?"...":""}</span>
+                    </div>
+                    <span style={{ fontSize:10, color:"#F87171", whiteSpace:"nowrap", marginLeft:10 }}>
+                      {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Ativas agora */}
+              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#10B981,#059669)", borderRadius:2 }} />
+                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ATIVAS AGORA</p>
+                </div>
+                {ativas.length === 0 ? (
+                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma campanha ativa</p>
+                ) : ativas.slice(0,5).map(i => (
+                  <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
+                    style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
+                    onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+                    onMouseLeave={e => e.currentTarget.style.opacity="1"}
+                  >
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981", flexShrink:0 }} />
+                      <div>
+                        <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+                        <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,35)}{(i.resumo||"").length>35?"...":""}</span>
+                      </div>
+                    </div>
+                    <span style={{ fontSize:10, color:"#10B981", whiteSpace:"nowrap", marginLeft:10 }}>
+                      até {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+          </>
+        )}
+      </main>
+
+      {modalExport && (
+        <ModalExport dados={issuesFiltradas} onFechar={() => setModalExport(false)} />
+      )}
+
+      <style>{`
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes fadeIn  { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideUp { from { opacity:0; transform:translate(-50%,-46%); } to { opacity:1; transform:translate(-50%,-50%); } }
+      `}</style>
+    </div>
+  );
+}
