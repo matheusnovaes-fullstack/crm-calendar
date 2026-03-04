@@ -1,7 +1,7 @@
 // CampanhasPage.jsx
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useIssuesCtx, useNotificacoesCtx } from "../App";
+import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
 import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X } from "lucide-react";
@@ -12,26 +12,23 @@ const MARCAS_MAP = {
   "verabetbr":    { label:"Vera",    color:"#66ff00" },
 };
 
-function FiltroData({ label, value, onChange, onClear }) {
+function FiltroData({ label, value, onChange, onClear, t }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:5, flex:1 }}>
-      <label style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:0.8 }}>{label}</label>
+      <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8 }}>{label}</label>
       <div style={{ position:"relative" }}>
-        <input
-          type="datetime-local"
-          value={value}
-          onChange={e => onChange(e.target.value)}
+        <input type="datetime-local" value={value} onChange={e => onChange(e.target.value)}
           style={{
             width:"100%", padding:"9px 34px 9px 12px", borderRadius:8,
-            border:"1px solid #0D1F3C", background:"#030912",
-            color: value ? "#F1F5F9" : "#334155", fontSize:12,
-            outline:"none", boxSizing:"border-box", colorScheme:"dark"
+            border:`1px solid ${t.border}`, background:t.inputAlt,
+            color: value ? t.text : t.textDim, fontSize:12,
+            outline:"none", boxSizing:"border-box", colorScheme: t.colorScheme
           }}
           onFocus={e => e.target.style.borderColor="#6366F1"}
-          onBlur={e  => e.target.style.borderColor="#0D1F3C"}
+          onBlur={e  => e.target.style.borderColor=t.border}
         />
         {value && (
-          <button onClick={onClear} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:"#475569", display:"flex", alignItems:"center", padding:0 }}>
+          <button onClick={onClear} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:t.textMuted, display:"flex", alignItems:"center", padding:0 }}>
             <X size={13} strokeWidth={2} />
           </button>
         )}
@@ -44,9 +41,9 @@ export default function CampanhasPage() {
   const navigate  = useNavigate();
   const { marca } = useParams();
 
-  // ── Consome contexto global ───────────────────────────
-  const { issues }                                           = useIssuesCtx();
-  const { historico, totalNaoLidas, marcarLidas }            = useNotificacoesCtx();
+  const { issues }                                        = useIssuesCtx();
+  const { historico, totalNaoLidas, marcarLidas }         = useNotificacoesCtx();
+  const { t }                                             = useTemaCtx();
 
   const [busca,        setBusca]        = useState("");
   const [filtro,       setFiltro]       = useState("todos");
@@ -55,45 +52,30 @@ export default function CampanhasPage() {
   const [dataInicio,   setDataInicio]   = useState("");
   const [dataFim,      setDataFim]      = useState("");
 
-  // Lista de responsáveis únicos
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
 
   const issuesPorMarca = marca
     ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
     : issues;
 
-  const temFiltroData = dataInicio || dataFim;
+  const temFiltroData  = dataInicio || dataFim;
   const temFiltroAtivo = temFiltroData || filtroResp !== "todos";
 
   function limparFiltros() {
-    setDataInicio("");
-    setDataFim("");
-    setFiltro("todos");
-    setBusca("");
-    setFiltroResp("todos");
+    setDataInicio(""); setDataFim("");
+    setFiltro("todos"); setBusca(""); setFiltroResp("todos");
   }
 
   const filtradas = issuesPorMarca.filter(i => {
-    const status      = i.statusDinamico || "sem_data";
-    const matchFiltro = filtro === "todos" || status === filtro;
+    const matchFiltro = filtro === "todos" || (i.statusDinamico||"sem_data") === filtro;
     const matchBusca  = busca === "" ||
       i.chave.toLowerCase().includes(busca.toLowerCase()) ||
       (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
       (i.casa||"").toLowerCase().includes(busca.toLowerCase());
     const matchResp   = filtroResp === "todos" || i.responsavel === filtroResp;
-
     let matchData = true;
-    if (dataInicio) {
-      const di = new Date(dataInicio);
-      const fe = i.data_resolucao ? new Date(i.data_resolucao) : null;
-      if (!fe || fe < di) matchData = false;
-    }
-    if (dataFim && matchData) {
-      const df = new Date(dataFim);
-      const fs = i.data_inicio ? new Date(i.data_inicio) : null;
-      if (!fs || fs > df) matchData = false;
-    }
-
+    if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
+    if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
     return matchFiltro && matchBusca && matchResp && matchData;
   });
 
@@ -107,14 +89,8 @@ export default function CampanhasPage() {
   const marcaInfo = marca ? MARCAS_MAP[marca] : null;
 
   return (
-    <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
-
-      {/* Sidebar agora recebe historico — sininho funciona! */}
-      <Sidebar
-        historico={historico}
-        totalNaoLidas={totalNaoLidas}
-        marcarLidas={marcarLidas}
-      />
+    <div style={{ display:"flex", minHeight:"100vh", background:t.bg, fontFamily:"Inter,sans-serif", transition:"background 0.2s" }}>
+      <Sidebar historico={historico} totalNaoLidas={totalNaoLidas} marcarLidas={marcarLidas} />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
@@ -122,7 +98,7 @@ export default function CampanhasPage() {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:6 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10 }}>
             <div style={{ width:3, height:20, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
-            <h1 style={{ fontSize:20, fontWeight:800, color:"#F1F5F9" }}>
+            <h1 style={{ fontSize:20, fontWeight:800, color:t.text }}>
               {marcaInfo ? (
                 <span style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <span style={{ width:10, height:10, borderRadius:"50%", background:marcaInfo.color, display:"inline-block" }} />
@@ -134,63 +110,51 @@ export default function CampanhasPage() {
 
           <button onClick={() => setFiltroAberto(v => !v)} style={{
             display:"flex", alignItems:"center", gap:6,
-            background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : "#050E1F",
-            border:`1px solid ${filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.4)" : "#0D1F3C"}`,
-            borderRadius:9, padding:"9px 14px", cursor:"pointer",
-            fontSize:12, fontWeight:600,
-            color: filtroAberto || temFiltroAtivo ? "#A5B4FC" : "#64748B",
+            background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : t.card,
+            border:`1px solid ${filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.4)" : t.border}`,
+            borderRadius:9, padding:"9px 14px", cursor:"pointer", fontSize:12, fontWeight:600,
+            color: filtroAberto || temFiltroAtivo ? "#A5B4FC" : t.textMuted,
             transition:"all 0.15s", position:"relative"
           }}>
             <SlidersHorizontal size={13} strokeWidth={2} />
             Filtrar
-            {temFiltroAtivo && (
-              <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />
-            )}
+            {temFiltroAtivo && <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />}
           </button>
         </div>
 
-        <p style={{ fontSize:12, color:"#334155", paddingLeft:13, marginBottom:20 }}>
+        <p style={{ fontSize:12, color:t.textDim, paddingLeft:13, marginBottom:20 }}>
           {marcaInfo ? `Filtrando por marca: ${marcaInfo.label}` : "Lista completa de todas as campanhas do projeto CP"}
         </p>
 
-        {/* Painel de filtros */}
+        {/* Painel filtros */}
         {filtroAberto && (
-          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:"20px 24px", marginBottom:20, animation:"fadeIn 0.15s ease" }}>
+          <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:"20px 24px", marginBottom:20, animation:"fadeIn 0.15s ease" }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-              <p style={{ fontSize:11, fontWeight:700, color:"#475569", letterSpacing:1 }}>FILTROS</p>
+              <p style={{ fontSize:11, fontWeight:700, color:t.textMuted, letterSpacing:1 }}>FILTROS</p>
               {temFiltroAtivo && (
-                <button onClick={limparFiltros} style={{
-                  background:"transparent", border:"1px solid #0D1F3C", borderRadius:6,
-                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:"#475569", transition:"all 0.15s"
-                }}
+                <button onClick={limparFiltros} style={{ background:"transparent", border:`1px solid ${t.border}`, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:t.textMuted, transition:"all 0.15s" }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor="#0D1F3C"; e.currentTarget.style.color="#475569"; }}
-                >
-                  Limpar tudo
-                </button>
+                  onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.color=t.textMuted; }}
+                >Limpar tudo</button>
               )}
             </div>
-
-            {/* Filtro de data */}
             <div style={{ display:"flex", gap:16, alignItems:"flex-end", marginBottom:16 }}>
-              <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} />
-              <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    />
+              <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} t={t} />
+              <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    t={t} />
               <div style={{ paddingBottom:1 }}>
-                <p style={{ fontSize:10, color:"#334155", marginBottom:5 }}>RESULTADO</p>
+                <p style={{ fontSize:10, color:t.textDim, marginBottom:5 }}>RESULTADO</p>
                 <p style={{ fontSize:20, fontWeight:800, color:"#6366F1" }}>{filtradas.length}</p>
               </div>
             </div>
-
-            {/* Filtro por responsável */}
             <div>
-              <label style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:0.8, display:"block", marginBottom:6 }}>RESPONSÁVEL</label>
+              <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:6 }}>RESPONSÁVEL</label>
               <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
                 {responsaveis.map(r => (
                   <button key={r} onClick={() => setFiltroResp(r)} style={{
                     padding:"5px 12px", borderRadius:6, fontSize:11, fontWeight:600, cursor:"pointer", transition:"all 0.15s",
                     background: filtroResp === r ? "rgba(99,102,241,0.2)" : "transparent",
-                    border: `1px solid ${filtroResp === r ? "rgba(99,102,241,0.5)" : "#0D1F3C"}`,
-                    color: filtroResp === r ? "#A5B4FC" : "#475569"
+                    border:`1px solid ${filtroResp === r ? "rgba(99,102,241,0.5)" : t.border}`,
+                    color: filtroResp === r ? "#A5B4FC" : t.textMuted
                   }}>
                     {r === "todos" ? "Todos" : r}
                   </button>
@@ -207,48 +171,45 @@ export default function CampanhasPage() {
             { key:"ativa",     label:"Ativas",     color:"#10B981" },
             { key:"encerrada", label:"Encerradas", color:"#F87171" },
             { key:"agendada",  label:"Agendadas",  color:"#A78BFA" },
-          ].map(t => (
-            <div key={t.key} onClick={() => setFiltro(t.key)} style={{
-              background: filtro===t.key ? `${t.color}18` : "#050E1F",
-              border:`1px solid ${filtro===t.key ? t.color+"44" : "#0D1F3C"}`,
+          ].map(tab => (
+            <div key={tab.key} onClick={() => setFiltro(tab.key)} style={{
+              background: filtro===tab.key ? `${tab.color}18` : t.card,
+              border:`1px solid ${filtro===tab.key ? tab.color+"44" : t.border}`,
               borderRadius:10, padding:"14px 16px", cursor:"pointer", transition:"all 0.15s"
             }}>
-              <p style={{ fontSize:11, color:"#475569", marginBottom:4 }}>{t.label}</p>
-              <p style={{ fontSize:28, fontWeight:800, color:filtro===t.key ? t.color : "#334155" }}>{counts[t.key]}</p>
+              <p style={{ fontSize:11, color:t.textMuted, marginBottom:4 }}>{tab.label}</p>
+              <p style={{ fontSize:28, fontWeight:800, color:filtro===tab.key ? tab.color : t.textDim }}>{counts[tab.key]}</p>
             </div>
           ))}
         </div>
 
         {/* Busca */}
         <div style={{ position:"relative", marginBottom:16 }}>
-          <Search size={14} strokeWidth={2} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:"#1E3A5F" }} />
+          <Search size={14} strokeWidth={2} style={{ position:"absolute", left:14, top:"50%", transform:"translateY(-50%)", color:t.textDeep }} />
           <input value={busca} onChange={e => setBusca(e.target.value)}
             placeholder="Buscar por chave, nome ou marca..."
-            style={{ width:"100%", padding:"11px 16px 11px 40px", borderRadius:10, border:"1px solid #0D1F3C", background:"#050E1F", color:"#F1F5F9", fontSize:13, outline:"none", boxSizing:"border-box" }}
+            style={{ width:"100%", padding:"11px 16px 11px 40px", borderRadius:10, border:`1px solid ${t.border}`, background:t.card, color:t.text, fontSize:13, outline:"none", boxSizing:"border-box", colorScheme: t.colorScheme }}
             onFocus={e => e.target.style.borderColor="#6366F1"}
-            onBlur={e  => e.target.style.borderColor="#0D1F3C"}
+            onBlur={e  => e.target.style.borderColor=t.border}
           />
         </div>
 
-        {/* Indicador de filtros ativos */}
         {temFiltroAtivo && (
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
-            <span style={{ fontSize:11, color:"#6366F1", fontWeight:600 }}>
-              {filtradas.length} campanha(s) encontrada(s) com filtros ativos
-            </span>
-            <button onClick={limparFiltros} style={{ display:"flex", alignItems:"center", gap:4, background:"transparent", border:"none", cursor:"pointer", fontSize:10, color:"#475569" }}>
+            <span style={{ fontSize:11, color:"#6366F1", fontWeight:600 }}>{filtradas.length} campanha(s) encontrada(s) com filtros ativos</span>
+            <button onClick={limparFiltros} style={{ display:"flex", alignItems:"center", gap:4, background:"transparent", border:"none", cursor:"pointer", fontSize:10, color:t.textMuted }}>
               <X size={11} strokeWidth={2} /> limpar
             </button>
           </div>
         )}
 
         {filtradas.length === 0 ? (
-          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>Nenhuma campanha encontrada.</div>
+          <div style={{ textAlign:"center", color:t.textDeep, paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
           <div key={issue.chave} onClick={() => navigate(`/promo/${issue.chave}`)}
-            style={{ background:"#050E1F", borderRadius:12, padding:"18px 20px", marginBottom:10, cursor:"pointer", border:"1px solid #0D1F3C", transition:"all 0.15s" }}
-            onMouseEnter={e => { e.currentTarget.style.border="1px solid rgba(99,102,241,0.4)"; e.currentTarget.style.background="#0A1628"; e.currentTarget.style.transform="translateY(-1px)"; }}
-            onMouseLeave={e => { e.currentTarget.style.border="1px solid #0D1F3C"; e.currentTarget.style.background="#050E1F"; e.currentTarget.style.transform="none"; }}
+            style={{ background:t.card, borderRadius:12, padding:"18px 20px", marginBottom:10, cursor:"pointer", border:`1px solid ${t.border}`, transition:"all 0.15s" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.4)"; e.currentTarget.style.background=t.cardHover; e.currentTarget.style.transform="translateY(-1px)"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.background=t.card; e.currentTarget.style.transform="none"; }}
           >
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16 }}>
               <div style={{ flex:1 }}>
@@ -260,31 +221,22 @@ export default function CampanhasPage() {
                     </span>
                   )}
                 </div>
-                <h3 style={{ fontSize:14, fontWeight:700, color:"#F1F5F9", marginBottom:7 }}>{issue.resumo}</h3>
-                <div style={{ display:"flex", gap:16, fontSize:11, color:"#334155", flexWrap:"wrap" }}>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <CalendarDays size={11} strokeWidth={2} />
-                    {issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}
-                  </span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <Flag size={11} strokeWidth={2} />
-                    {issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}
-                  </span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <User size={11} strokeWidth={2} />
-                    {issue.responsavel || "—"}
-                  </span>
+                <h3 style={{ fontSize:14, fontWeight:700, color:t.text, marginBottom:7 }}>{issue.resumo}</h3>
+                <div style={{ display:"flex", gap:16, fontSize:11, color:t.textDim, flexWrap:"wrap" }}>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><CalendarDays size={11} strokeWidth={2} />{issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><Flag size={11} strokeWidth={2} />{issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><User size={11} strokeWidth={2} />{issue.responsavel || "—"}</span>
                 </div>
               </div>
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
                 <StatusBadge inicio={issue.data_inicio} fim={issue.data_resolucao} />
-                <span style={{ fontSize:10, color:"#1E3A5F" }}>Ver detalhes →</span>
+                <span style={{ fontSize:10, color:t.textDeep }}>Ver detalhes →</span>
               </div>
             </div>
           </div>
         ))}
       </main>
-      <style>{`@keyframes fadeIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <style>{`@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
     </div>
   );
 }
