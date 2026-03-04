@@ -32,12 +32,12 @@ function AppContent() {
   return (
     <>
       <Routes>
-        <Route path="/"                 element={<CalendarPage onAbrirTutorial={abrir} />} />
-        <Route path="/day/:date"        element={<DayPage />}        />
-        <Route path="/promo/:key"       element={<PromoPage />}      />
-        <Route path="/campanhas"        element={<CampanhasPage />}  />
+        <Route path="/" element={<CalendarPage onAbrirTutorial={abrir} />} />
+        <Route path="/day/:date" element={<DayPage />}        />
+        <Route path="/promo/:key" element={<PromoPage />}      />
+        <Route path="/campanhas" element={<CampanhasPage />}  />
         <Route path="/campanhas/:marca" element={<CampanhasPage />}  />
-        <Route path="/relatorios"       element={<RelatoriosPage />} />
+        <Route path="/relatorios" element={<RelatoriosPage />} />
       </Routes>
       {visivel && <Tutorial onFechar={fechar} />}
     </>
