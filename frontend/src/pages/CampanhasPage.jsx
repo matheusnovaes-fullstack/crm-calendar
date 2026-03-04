@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+// CampanhasPage.jsx
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { getIssues } from "../services/api";
+import { useIssuesCtx, useNotificacoesCtx } from "../App";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
-import { Search, CalendarDays, Flag, User, Home, Loader, SlidersHorizontal, X } from "lucide-react";
+import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X } from "lucide-react";
 
 const MARCAS_MAP = {
   "a7kbetbr":     { label:"7K",      color:"#09ff00" },
@@ -24,18 +25,13 @@ function FiltroData({ label, value, onChange, onClear }) {
             width:"100%", padding:"9px 34px 9px 12px", borderRadius:8,
             border:"1px solid #0D1F3C", background:"#030912",
             color: value ? "#F1F5F9" : "#334155", fontSize:12,
-            outline:"none", boxSizing:"border-box",
-            colorScheme:"dark"
+            outline:"none", boxSizing:"border-box", colorScheme:"dark"
           }}
           onFocus={e => e.target.style.borderColor="#6366F1"}
           onBlur={e  => e.target.style.borderColor="#0D1F3C"}
         />
         {value && (
-          <button onClick={onClear} style={{
-            position:"absolute", right:8, top:"50%", transform:"translateY(-50%)",
-            background:"transparent", border:"none", cursor:"pointer",
-            color:"#475569", display:"flex", alignItems:"center", padding:0
-          }}>
+          <button onClick={onClear} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:"#475569", display:"flex", alignItems:"center", padding:0 }}>
             <X size={13} strokeWidth={2} />
           </button>
         )}
@@ -47,51 +43,45 @@ function FiltroData({ label, value, onChange, onClear }) {
 export default function CampanhasPage() {
   const navigate  = useNavigate();
   const { marca } = useParams();
-  const [issues,       setIssues]       = useState([]);
-  const [loading,      setLoading]      = useState(true);
+
+  // ── Consome contexto global ───────────────────────────
+  const { issues }                                           = useIssuesCtx();
+  const { historico, totalNaoLidas, marcarLidas }            = useNotificacoesCtx();
+
   const [busca,        setBusca]        = useState("");
   const [filtro,       setFiltro]       = useState("todos");
+  const [filtroResp,   setFiltroResp]   = useState("todos");
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [dataInicio,   setDataInicio]   = useState("");
   const [dataFim,      setDataFim]      = useState("");
 
-  useEffect(() => {
-    getIssues("CP")
-      .then(({ data }) => setIssues(data?.data || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  // Lista de responsáveis únicos
+  const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
 
-  const agora = new Date();
-  function getStatus(i) {
-    if (!i.data_inicio || !i.data_resolucao) return "sem_data";
-    const s = new Date(i.data_inicio), e = new Date(i.data_resolucao);
-    if (agora < s) return "agendada";
-    if (agora >= s && agora <= e) return "ativa";
-    return "encerrada";
-  }
+  const issuesPorMarca = marca
+    ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
+    : issues;
 
   const temFiltroData = dataInicio || dataFim;
+  const temFiltroAtivo = temFiltroData || filtroResp !== "todos";
 
   function limparFiltros() {
     setDataInicio("");
     setDataFim("");
     setFiltro("todos");
     setBusca("");
+    setFiltroResp("todos");
   }
 
-  const issuesPorMarca = marca
-    ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
-    : issues;
-
   const filtradas = issuesPorMarca.filter(i => {
-    const matchFiltro = filtro === "todos" || getStatus(i) === filtro;
+    const status      = i.statusDinamico || "sem_data";
+    const matchFiltro = filtro === "todos" || status === filtro;
     const matchBusca  = busca === "" ||
       i.chave.toLowerCase().includes(busca.toLowerCase()) ||
       (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
       (i.casa||"").toLowerCase().includes(busca.toLowerCase());
+    const matchResp   = filtroResp === "todos" || i.responsavel === filtroResp;
 
-    // Filtro de data: campanha ativa no intervalo selecionado
     let matchData = true;
     if (dataInicio) {
       const di = new Date(dataInicio);
@@ -104,21 +94,28 @@ export default function CampanhasPage() {
       if (!fs || fs > df) matchData = false;
     }
 
-    return matchFiltro && matchBusca && matchData;
+    return matchFiltro && matchBusca && matchResp && matchData;
   });
 
   const counts = {
     todos:     issuesPorMarca.length,
-    ativa:     issuesPorMarca.filter(i => getStatus(i)==="ativa").length,
-    encerrada: issuesPorMarca.filter(i => getStatus(i)==="encerrada").length,
-    agendada:  issuesPorMarca.filter(i => getStatus(i)==="agendada").length,
+    ativa:     issuesPorMarca.filter(i => i.statusDinamico === "ativa").length,
+    encerrada: issuesPorMarca.filter(i => i.statusDinamico === "encerrada").length,
+    agendada:  issuesPorMarca.filter(i => i.statusDinamico === "agendada").length,
   };
 
   const marcaInfo = marca ? MARCAS_MAP[marca] : null;
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
-      <Sidebar />
+
+      {/* Sidebar agora recebe historico — sininho funciona! */}
+      <Sidebar
+        historico={historico}
+        totalNaoLidas={totalNaoLidas}
+        marcarLidas={marcarLidas}
+      />
+
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
         {/* Header */}
@@ -135,19 +132,18 @@ export default function CampanhasPage() {
             </h1>
           </div>
 
-          {/* Botão filtro de data */}
           <button onClick={() => setFiltroAberto(v => !v)} style={{
             display:"flex", alignItems:"center", gap:6,
-            background: filtroAberto || temFiltroData ? "rgba(99,102,241,0.15)" : "#050E1F",
-            border: `1px solid ${filtroAberto || temFiltroData ? "rgba(99,102,241,0.4)" : "#0D1F3C"}`,
+            background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : "#050E1F",
+            border:`1px solid ${filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.4)" : "#0D1F3C"}`,
             borderRadius:9, padding:"9px 14px", cursor:"pointer",
             fontSize:12, fontWeight:600,
-            color: filtroAberto || temFiltroData ? "#A5B4FC" : "#64748B",
+            color: filtroAberto || temFiltroAtivo ? "#A5B4FC" : "#64748B",
             transition:"all 0.15s", position:"relative"
           }}>
             <SlidersHorizontal size={13} strokeWidth={2} />
-            Filtrar por data
-            {temFiltroData && (
+            Filtrar
+            {temFiltroAtivo && (
               <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />
             )}
           </button>
@@ -157,44 +153,48 @@ export default function CampanhasPage() {
           {marcaInfo ? `Filtrando por marca: ${marcaInfo.label}` : "Lista completa de todas as campanhas do projeto CP"}
         </p>
 
-        {/* Painel de filtro de data */}
+        {/* Painel de filtros */}
         {filtroAberto && (
-          <div style={{
-            background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12,
-            padding:"20px 24px", marginBottom:20,
-            animation:"fadeIn 0.15s ease"
-          }}>
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:"20px 24px", marginBottom:20, animation:"fadeIn 0.15s ease" }}>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
-              <p style={{ fontSize:11, fontWeight:700, color:"#475569", letterSpacing:1 }}>FILTRO DE PERÍODO</p>
-              {temFiltroData && (
+              <p style={{ fontSize:11, fontWeight:700, color:"#475569", letterSpacing:1 }}>FILTROS</p>
+              {temFiltroAtivo && (
                 <button onClick={limparFiltros} style={{
                   background:"transparent", border:"1px solid #0D1F3C", borderRadius:6,
-                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:"#475569",
-                  transition:"all 0.15s"
+                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:"#475569", transition:"all 0.15s"
                 }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor="#0D1F3C"; e.currentTarget.style.color="#475569"; }}
                 >
-                  Limpar filtros
+                  Limpar tudo
                 </button>
               )}
             </div>
-            <div style={{ display:"flex", gap:16, alignItems:"flex-end" }}>
-              <FiltroData
-                label="INÍCIO A PARTIR DE"
-                value={dataInicio}
-                onChange={setDataInicio}
-                onClear={() => setDataInicio("")}
-              />
-              <FiltroData
-                label="ENCERRAMENTO ATÉ"
-                value={dataFim}
-                onChange={setDataFim}
-                onClear={() => setDataFim("")}
-              />
+
+            {/* Filtro de data */}
+            <div style={{ display:"flex", gap:16, alignItems:"flex-end", marginBottom:16 }}>
+              <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} />
+              <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    />
               <div style={{ paddingBottom:1 }}>
                 <p style={{ fontSize:10, color:"#334155", marginBottom:5 }}>RESULTADO</p>
                 <p style={{ fontSize:20, fontWeight:800, color:"#6366F1" }}>{filtradas.length}</p>
+              </div>
+            </div>
+
+            {/* Filtro por responsável */}
+            <div>
+              <label style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:0.8, display:"block", marginBottom:6 }}>RESPONSÁVEL</label>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+                {responsaveis.map(r => (
+                  <button key={r} onClick={() => setFiltroResp(r)} style={{
+                    padding:"5px 12px", borderRadius:6, fontSize:11, fontWeight:600, cursor:"pointer", transition:"all 0.15s",
+                    background: filtroResp === r ? "rgba(99,102,241,0.2)" : "transparent",
+                    border: `1px solid ${filtroResp === r ? "rgba(99,102,241,0.5)" : "#0D1F3C"}`,
+                    color: filtroResp === r ? "#A5B4FC" : "#475569"
+                  }}>
+                    {r === "todos" ? "Todos" : r}
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -230,29 +230,19 @@ export default function CampanhasPage() {
           />
         </div>
 
-        {/* Resultado com indicador de filtro ativo */}
-        {temFiltroData && !loading && (
+        {/* Indicador de filtros ativos */}
+        {temFiltroAtivo && (
           <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
             <span style={{ fontSize:11, color:"#6366F1", fontWeight:600 }}>
-              {filtradas.length} campanha(s) no período selecionado
+              {filtradas.length} campanha(s) encontrada(s) com filtros ativos
             </span>
-            <button onClick={limparFiltros} style={{
-              display:"flex", alignItems:"center", gap:4,
-              background:"transparent", border:"none", cursor:"pointer",
-              fontSize:10, color:"#475569"
-            }}>
+            <button onClick={limparFiltros} style={{ display:"flex", alignItems:"center", gap:4, background:"transparent", border:"none", cursor:"pointer", fontSize:10, color:"#475569" }}>
               <X size={11} strokeWidth={2} /> limpar
             </button>
           </div>
         )}
 
-        {loading ? (
-          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-            <Loader size={16} strokeWidth={2} style={{ animation:"spin 1s linear infinite" }} />
-            Carregando...
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-          </div>
-        ) : filtradas.length === 0 ? (
+        {filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
           <div key={issue.chave} onClick={() => navigate(`/promo/${issue.chave}`)}
