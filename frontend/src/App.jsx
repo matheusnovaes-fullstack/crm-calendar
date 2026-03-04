@@ -8,6 +8,9 @@ import RelatoriosPage from "./pages/RelatoriosPage";
 import Tutorial       from "./components/Tutorial";
 import LoginPage      from "./pages/LoginPage";
 import { useTutorial } from "./hooks/useTutorial";
+import MANUTENCAO from "./config/manutencao";
+import ManutencaoScreen from "./components/ManutencaoScreen";
+
 
 function AppContent() {
   const { visivel, abrir, fechar } = useTutorial();
