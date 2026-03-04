@@ -1,8 +1,12 @@
-import { useState, useEffect } from "react";
+// RelatoriosPage.jsx
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getIssues } from "../services/api";
+import { useIssuesCtx, useNotificacoesCtx } from "../App";
 import Sidebar from "../components/Sidebar";
-import { LayoutList, CheckCircle, XCircle, Clock, Loader, SlidersHorizontal, Download, X, FileText, FileJson } from "lucide-react";
+import {
+  LayoutList, CheckCircle, XCircle, Clock,
+  SlidersHorizontal, Download, X, FileText, FileJson
+} from "lucide-react";
 
 const barColors = ["#6366F1","#8B5CF6","#A78BFA","#818CF8","#4F46E5"];
 
@@ -22,13 +26,13 @@ const CAMPOS_DISPONIVEIS = [
   { key:"valor_reais",    label:"Valor R$"          },
 ];
 
+// Usa statusDinamico do contexto (já calculado pelo useIssues)
 function getStatusLabel(i) {
-  const agora = new Date();
-  if (!i.data_inicio || !i.data_resolucao) return "Sem data";
-  const s = new Date(i.data_inicio), e = new Date(i.data_resolucao);
-  if (agora < s) return "Agendada";
-  if (agora >= s && agora <= e) return "Ativa";
-  return "Encerrada";
+  const s = i.statusDinamico;
+  if (s === "ativa")     return "Ativa";
+  if (s === "agendada")  return "Agendada";
+  if (s === "encerrada") return "Encerrada";
+  return "Sem data";
 }
 
 function exportarCSV(dados, campos) {
@@ -85,8 +89,7 @@ function ModalExport({ dados, onFechar }) {
         position:"fixed", top:"50%", left:"50%", transform:"translate(-50%,-50%)",
         zIndex:9999, background:"#050E1F", border:"1px solid #0D1F3C",
         borderRadius:16, padding:"28px 32px", width:480,
-        boxShadow:"0 24px 60px rgba(0,0,0,0.6)",
-        animation:"slideUp 0.2s ease"
+        boxShadow:"0 24px 60px rgba(0,0,0,0.6)", animation:"slideUp 0.2s ease"
       }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:20 }}>
           <div>
@@ -125,36 +128,28 @@ function ModalExport({ dados, onFechar }) {
         </div>
 
         <div style={{ display:"flex", gap:10 }}>
-          <button
-            disabled={!podeBaixar}
+          <button disabled={!podeBaixar}
             onClick={() => { exportarCSV(dados, camposSelecionados); onFechar(); }}
             style={{
               flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
-              padding:"11px", borderRadius:10,
-              cursor: podeBaixar ? "pointer" : "not-allowed",
+              padding:"11px", borderRadius:10, cursor: podeBaixar ? "pointer" : "not-allowed",
               background: podeBaixar ? "linear-gradient(135deg,#6366F1,#4F46E5)" : "#0A1628",
-              color: podeBaixar ? "#fff" : "#334155",
-              border:"none", fontSize:12, fontWeight:700,
-              boxShadow: podeBaixar ? "0 4px 14px rgba(99,102,241,0.4)" : "none",
-              transition:"opacity 0.15s"
+              color: podeBaixar ? "#fff" : "#334155", border:"none", fontSize:12, fontWeight:700,
+              boxShadow: podeBaixar ? "0 4px 14px rgba(99,102,241,0.4)" : "none", transition:"opacity 0.15s"
             }}
             onMouseEnter={e => { if (podeBaixar) e.currentTarget.style.opacity="0.85"; }}
             onMouseLeave={e => e.currentTarget.style.opacity="1"}
           >
             <FileText size={14} strokeWidth={2} /> Exportar CSV
           </button>
-          <button
-            disabled={!podeBaixar}
+          <button disabled={!podeBaixar}
             onClick={() => { exportarJSON(dados, camposSelecionados); onFechar(); }}
             style={{
               flex:1, display:"flex", alignItems:"center", justifyContent:"center", gap:7,
-              padding:"11px", borderRadius:10,
-              cursor: podeBaixar ? "pointer" : "not-allowed",
-              background:"#0A1628",
-              color: podeBaixar ? "#818CF8" : "#334155",
+              padding:"11px", borderRadius:10, cursor: podeBaixar ? "pointer" : "not-allowed",
+              background:"#0A1628", color: podeBaixar ? "#818CF8" : "#334155",
               border: podeBaixar ? "1px solid rgba(99,102,241,0.3)" : "1px solid #0D1F3C",
-              fontSize:12, fontWeight:700,
-              transition:"all 0.15s"
+              fontSize:12, fontWeight:700, transition:"all 0.15s"
             }}
             onMouseEnter={e => { if (podeBaixar) { e.currentTarget.style.borderColor="rgba(99,102,241,0.6)"; e.currentTarget.style.color="#A5B4FC"; }}}
             onMouseLeave={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.3)"; e.currentTarget.style.color="#818CF8"; }}
@@ -172,24 +167,18 @@ function FiltroData({ label, value, onChange, onClear }) {
     <div style={{ display:"flex", flexDirection:"column", gap:5, flex:1 }}>
       <label style={{ fontSize:10, fontWeight:700, color:"#475569", letterSpacing:0.8 }}>{label}</label>
       <div style={{ position:"relative" }}>
-        <input
-          type="datetime-local"
-          value={value}
-          onChange={e => onChange(e.target.value)}
+        <input type="datetime-local" value={value} onChange={e => onChange(e.target.value)}
           style={{
             width:"100%", padding:"9px 34px 9px 12px", borderRadius:8,
             border:"1px solid #0D1F3C", background:"#030912",
-            color: value ? "#F1F5F9" : "#334155",
-            fontSize:12, outline:"none", boxSizing:"border-box", colorScheme:"dark"
+            color: value ? "#F1F5F9" : "#334155", fontSize:12,
+            outline:"none", boxSizing:"border-box", colorScheme:"dark"
           }}
           onFocus={e => e.target.style.borderColor="#6366F1"}
           onBlur={e  => e.target.style.borderColor="#0D1F3C"}
         />
         {value && (
-          <button onClick={onClear} style={{
-            position:"absolute", right:8, top:"50%", transform:"translateY(-50%)",
-            background:"transparent", border:"none", cursor:"pointer", color:"#475569", padding:0
-          }}>
+          <button onClick={onClear} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"transparent", border:"none", cursor:"pointer", color:"#475569", padding:0 }}>
             <X size={13} strokeWidth={2} />
           </button>
         )}
@@ -200,28 +189,15 @@ function FiltroData({ label, value, onChange, onClear }) {
 
 export default function RelatoriosPage() {
   const navigate = useNavigate();
-  const [issues,       setIssues]       = useState([]);
-  const [loading,      setLoading]      = useState(true);
+
+  // ── Consome contexto global ───────────────────────────
+  const { issues }                                = useIssuesCtx();
+  const { historico, totalNaoLidas, marcarLidas } = useNotificacoesCtx();
+
   const [filtroAberto, setFiltroAberto] = useState(false);
   const [modalExport,  setModalExport]  = useState(false);
   const [dataInicio,   setDataInicio]   = useState("");
   const [dataFim,      setDataFim]      = useState("");
-
-  useEffect(() => {
-    getIssues("CP")
-      .then(({ data }) => setIssues(data?.data || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  const agora = new Date();
-  function getStatus(i) {
-    if (!i.data_inicio || !i.data_resolucao) return "sem_data";
-    const s = new Date(i.data_inicio), e = new Date(i.data_resolucao);
-    if (agora < s) return "agendada";
-    if (agora >= s && agora <= e) return "ativa";
-    return "encerrada";
-  }
 
   const temFiltroData = dataInicio || dataFim;
 
@@ -240,9 +216,10 @@ export default function RelatoriosPage() {
     return ok;
   });
 
-  const ativas     = issuesFiltradas.filter(i => getStatus(i) === "ativa");
-  const encerradas = issuesFiltradas.filter(i => getStatus(i) === "encerrada");
-  const agendadas  = issuesFiltradas.filter(i => getStatus(i) === "agendada");
+  // Usa statusDinamico do contexto — sem recalcular
+  const ativas     = issuesFiltradas.filter(i => i.statusDinamico === "ativa");
+  const encerradas = issuesFiltradas.filter(i => i.statusDinamico === "encerrada");
+  const agendadas  = issuesFiltradas.filter(i => i.statusDinamico === "agendada");
 
   const porMes = {};
   issuesFiltradas.forEach(i => {
@@ -269,19 +246,20 @@ export default function RelatoriosPage() {
 
   const kpis = [
     { label:"Total no período", value:issuesFiltradas.length, color:"#6366F1", Icon:LayoutList  },
-    { label:"Ativas agora",      value:ativas.length,          color:"#10B981", Icon:CheckCircle },
-    { label:"Encerradas",        value:encerradas.length,      color:"#F87171", Icon:XCircle     },
-    { label:"Agendadas",         value:agendadas.length,       color:"#A78BFA", Icon:Clock       },
+    { label:"Ativas agora",     value:ativas.length,          color:"#10B981", Icon:CheckCircle },
+    { label:"Encerradas",       value:encerradas.length,      color:"#F87171", Icon:XCircle     },
+    { label:"Agendadas",        value:agendadas.length,       color:"#A78BFA", Icon:Clock       },
   ];
-
-  // Variáveis extraídas para evitar template literals ternários no JSX
-  const filtroBtnBg     = filtroAberto || temFiltroData ? "rgba(99,102,241,0.15)" : "#050E1F";
-  const filtroBtnBorder = filtroAberto || temFiltroData ? "1px solid rgba(99,102,241,0.4)" : "1px solid #0D1F3C";
-  const filtroBtnColor  = filtroAberto || temFiltroData ? "#A5B4FC" : "#64748B";
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:"#020817", fontFamily:"Inter,sans-serif" }}>
-      <Sidebar />
+
+      {/* Sidebar agora recebe historico — sininho funciona! */}
+      <Sidebar
+        historico={historico}
+        totalNaoLidas={totalNaoLidas}
+        marcarLidas={marcarLidas}
+      />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
@@ -295,18 +273,16 @@ export default function RelatoriosPage() {
           <div style={{ display:"flex", gap:10 }}>
             <button onClick={() => setFiltroAberto(v => !v)} style={{
               display:"flex", alignItems:"center", gap:6,
-              background: filtroBtnBg,
-              border: filtroBtnBorder,
+              background: filtroAberto || temFiltroData ? "rgba(99,102,241,0.15)" : "#050E1F",
+              border:`1px solid ${filtroAberto || temFiltroData ? "rgba(99,102,241,0.4)" : "#0D1F3C"}`,
               borderRadius:9, padding:"9px 14px", cursor:"pointer",
               fontSize:12, fontWeight:600,
-              color: filtroBtnColor,
+              color: filtroAberto || temFiltroData ? "#A5B4FC" : "#64748B",
               transition:"all 0.15s", position:"relative"
             }}>
               <SlidersHorizontal size={13} strokeWidth={2} />
               Filtrar por data
-              {temFiltroData && (
-                <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />
-              )}
+              {temFiltroData && <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />}
             </button>
 
             <button onClick={() => setModalExport(true)} style={{
@@ -314,8 +290,7 @@ export default function RelatoriosPage() {
               background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff",
               border:"none", borderRadius:9, padding:"9px 18px",
               cursor:"pointer", fontSize:12, fontWeight:600,
-              boxShadow:"0 4px 14px rgba(99,102,241,0.4)",
-              transition:"opacity 0.15s"
+              boxShadow:"0 4px 14px rgba(99,102,241,0.4)", transition:"opacity 0.15s"
             }}
               onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
               onMouseLeave={e => e.currentTarget.style.opacity="1"}
@@ -327,7 +302,7 @@ export default function RelatoriosPage() {
 
         <p style={{ fontSize:12, color:"#334155", paddingLeft:13, marginBottom:20 }}>
           {temFiltroData
-            ? issuesFiltradas.length + " campanha(s) no período filtrado"
+            ? `${issuesFiltradas.length} campanha(s) no período filtrado`
             : "Visão analítica das campanhas promocionais"}
         </p>
 
@@ -339,8 +314,7 @@ export default function RelatoriosPage() {
               {temFiltroData && (
                 <button onClick={() => { setDataInicio(""); setDataFim(""); }} style={{
                   background:"transparent", border:"1px solid #0D1F3C", borderRadius:6,
-                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600,
-                  color:"#475569", transition:"all 0.15s"
+                  padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:"#475569", transition:"all 0.15s"
                 }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor="#0D1F3C"; e.currentTarget.style.color="#475569"; }}
@@ -360,141 +334,128 @@ export default function RelatoriosPage() {
           </div>
         )}
 
-        {loading ? (
-          <div style={{ textAlign:"center", color:"#1E3A5F", paddingTop:80, display:"flex", alignItems:"center", justifyContent:"center", gap:10 }}>
-            <Loader size={16} strokeWidth={2} style={{ animation:"spin 1s linear infinite" }} />
-            Carregando dados...
+        {/* KPIs */}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
+          {kpis.map(k => (
+            <div key={k.label} style={{ background:"#050E1F", border:`1px solid ${k.color}22`, borderRadius:12, padding:"18px 20px" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
+                <div>
+                  <p style={{ fontSize:11, color:"#334155", marginBottom:8 }}>{k.label}</p>
+                  <p style={{ fontSize:32, fontWeight:800, color:k.color }}>{k.value}</p>
+                </div>
+                <k.Icon size={22} color={k.color} strokeWidth={1.5} style={{ opacity:0.5 }} />
+              </div>
+              <div style={{ marginTop:12, height:3, background:"#0D1F3C", borderRadius:2 }}>
+                <div style={{ height:3, background:k.color, borderRadius:2, width:(issuesFiltradas.length > 0 ? (k.value/issuesFiltradas.length)*100 : 0) + "%", transition:"width 0.5s" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+
+          {/* Por mês */}
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
+              <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR MÊS</p>
+            </div>
+            {mesesOrdenados.length === 0 ? (
+              <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
+            ) : mesesOrdenados.map(([key, count], idx) => (
+              <div key={key} style={{ marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                  <span style={{ fontSize:11, color:"#475569" }}>{formatMes(key)}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:"#6366F1" }}>{count}</span>
+                </div>
+                <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
+                  <div style={{ height:8, borderRadius:4, width:((count/maxMes)*100)+"%", background:`linear-gradient(90deg,${barColors[idx%barColors.length]},${barColors[(idx+1)%barColors.length]})`, transition:"width 0.5s" }} />
+                </div>
+              </div>
+            ))}
           </div>
-        ) : (
-          <>
-            {/* KPIs */}
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12, marginBottom:24 }}>
-              {kpis.map(k => (
-                <div key={k.label} style={{ background:"#050E1F", border:"1px solid " + k.color + "22", borderRadius:12, padding:"18px 20px" }}>
-                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start" }}>
-                    <div>
-                      <p style={{ fontSize:11, color:"#334155", marginBottom:8 }}>{k.label}</p>
-                      <p style={{ fontSize:32, fontWeight:800, color:k.color }}>{k.value}</p>
-                    </div>
-                    <k.Icon size={22} color={k.color} strokeWidth={1.5} style={{ opacity:0.5 }} />
-                  </div>
-                  <div style={{ marginTop:12, height:3, background:"#0D1F3C", borderRadius:2 }}>
-                    <div style={{ height:3, background:k.color, borderRadius:2, width:(issuesFiltradas.length > 0 ? (k.value/issuesFiltradas.length)*100 : 0) + "%", transition:"width 0.5s" }} />
-                  </div>
-                </div>
-              ))}
+
+          {/* Por componente */}
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
+              <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR COMPONENTE</p>
             </div>
-
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-
-              {/* Por mês */}
-              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
-                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR MÊS</p>
+            {compOrdenados.length === 0 ? (
+              <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
+            ) : compOrdenados.map(([comp, count], idx) => (
+              <div key={comp} style={{ marginBottom:10 }}>
+                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                  <span style={{ fontSize:11, color:"#475569" }}>{comp}</span>
+                  <span style={{ fontSize:11, fontWeight:700, color:barColors[idx%barColors.length] }}>{count}</span>
                 </div>
-                {mesesOrdenados.length === 0 ? (
-                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
-                ) : mesesOrdenados.map(([key, count], idx) => (
-                  <div key={key} style={{ marginBottom:10 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                      <span style={{ fontSize:11, color:"#475569" }}>{formatMes(key)}</span>
-                      <span style={{ fontSize:11, fontWeight:700, color:"#6366F1" }}>{count}</span>
-                    </div>
-                    <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
-                      <div style={{ height:8, borderRadius:4, width:((count/maxMes)*100) + "%", background:"linear-gradient(90deg," + barColors[idx%barColors.length] + "," + barColors[(idx+1)%barColors.length] + ")", transition:"width 0.5s" }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Por componente */}
-              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
-                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>CAMPANHAS POR COMPONENTE</p>
+                <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
+                  <div style={{ height:8, borderRadius:4, width:((count/maxComp)*100)+"%", background:barColors[idx%barColors.length], transition:"width 0.5s" }} />
                 </div>
-                {compOrdenados.length === 0 ? (
-                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
-                ) : compOrdenados.map(([comp, count], idx) => (
-                  <div key={comp} style={{ marginBottom:10 }}>
-                    <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                      <span style={{ fontSize:11, color:"#475569" }}>{comp}</span>
-                      <span style={{ fontSize:11, fontWeight:700, color:barColors[idx%barColors.length] }}>{count}</span>
-                    </div>
-                    <div style={{ height:8, background:"#0A1628", borderRadius:4 }}>
-                      <div style={{ height:8, borderRadius:4, width:((count/maxComp)*100) + "%", background:barColors[idx%barColors.length], transition:"width 0.5s" }} />
-                    </div>
-                  </div>
-                ))}
               </div>
+            ))}
+          </div>
 
-              {/* Últimas encerradas */}
-              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#F87171,#EF4444)", borderRadius:2 }} />
-                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ÚLTIMAS ENCERRADAS</p>
-                </div>
-                {encerradas.length === 0 ? (
-                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma encerrada</p>
-                ) : encerradas.slice(0,5).map(i => (
-                  <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
-                    style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
-                    onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
-                    onMouseLeave={e => e.currentTarget.style.opacity="1"}
-                  >
-                    <div>
-                      <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
-                      <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,40)}{(i.resumo||"").length>40?"...":""}</span>
-                    </div>
-                    <span style={{ fontSize:10, color:"#F87171", whiteSpace:"nowrap", marginLeft:10 }}>
-                      {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Ativas agora */}
-              <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-                  <div style={{ width:3, height:14, background:"linear-gradient(180deg,#10B981,#059669)", borderRadius:2 }} />
-                  <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ATIVAS AGORA</p>
-                </div>
-                {ativas.length === 0 ? (
-                  <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma campanha ativa</p>
-                ) : ativas.slice(0,5).map(i => (
-                  <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
-                    style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
-                    onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
-                    onMouseLeave={e => e.currentTarget.style.opacity="1"}
-                  >
-                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                      <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981", flexShrink:0 }} />
-                      <div>
-                        <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
-                        <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,35)}{(i.resumo||"").length>35?"...":""}</span>
-                      </div>
-                    </div>
-                    <span style={{ fontSize:10, color:"#10B981", whiteSpace:"nowrap", marginLeft:10 }}>
-                      até {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-
+          {/* Últimas encerradas */}
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#F87171,#EF4444)", borderRadius:2 }} />
+              <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ÚLTIMAS ENCERRADAS</p>
             </div>
-          </>
-        )}
+            {encerradas.length === 0 ? (
+              <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma encerrada</p>
+            ) : encerradas.slice(0,5).map(i => (
+              <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
+                style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
+                onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+                onMouseLeave={e => e.currentTarget.style.opacity="1"}
+              >
+                <div>
+                  <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+                  <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,40)}{(i.resumo||"").length>40?"...":""}</span>
+                </div>
+                <span style={{ fontSize:10, color:"#F87171", whiteSpace:"nowrap", marginLeft:10 }}>
+                  {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Ativas agora */}
+          <div style={{ background:"#050E1F", border:"1px solid #0D1F3C", borderRadius:12, padding:24 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#10B981,#059669)", borderRadius:2 }} />
+              <p style={{ fontSize:12, fontWeight:700, color:"#475569" }}>ATIVAS AGORA</p>
+            </div>
+            {ativas.length === 0 ? (
+              <p style={{ color:"#1E3A5F", fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma campanha ativa</p>
+            ) : ativas.slice(0,5).map(i => (
+              <div key={i.chave} onClick={() => navigate("/promo/" + i.chave)}
+                style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:"1px solid #080F1E", cursor:"pointer" }}
+                onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+                onMouseLeave={e => e.currentTarget.style.opacity="1"}
+              >
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981", flexShrink:0 }} />
+                  <div>
+                    <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+                    <span style={{ fontSize:12, color:"#94A3B8" }}>{(i.resumo||"").slice(0,35)}{(i.resumo||"").length>35?"...":""}</span>
+                  </div>
+                </div>
+                <span style={{ fontSize:10, color:"#10B981", whiteSpace:"nowrap", marginLeft:10 }}>
+                  até {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
 
-      {modalExport && (
-        <ModalExport dados={issuesFiltradas} onFechar={() => setModalExport(false)} />
-      )}
+      {modalExport && <ModalExport dados={issuesFiltradas} onFechar={() => setModalExport(false)} />}
 
       <style>{`
-        @keyframes spin    { to { transform: rotate(360deg); } }
-        @keyframes fadeIn  { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes slideUp { from { opacity:0; transform:translate(-50%,-46%); } to { opacity:1; transform:translate(-50%,-50%); } }
+        @keyframes fadeIn  { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideUp { from{opacity:0;transform:translate(-50%,-46%)} to{opacity:1;transform:translate(-50%,-50%)} }
       `}</style>
     </div>
   );
