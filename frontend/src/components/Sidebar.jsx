@@ -1,59 +1,17 @@
 // Sidebar.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useTemaCtx } from "../App";
 import {
-  Calendar, LayoutList, BarChart2, Spade, Bell, X,
-  PlayCircle, StopCircle, Clock, Sun, Moon
+  Calendar, LayoutList, BarChart2, Spade,
+  Bell, X, PlayCircle, StopCircle, Clock, Sun, Moon
 } from "lucide-react";
 
 const MARCAS = [
-  { slug: "a7kbetbr",     label: "7K",      color: "#6366F1" },
-  { slug: "cassinobetbr", label: "Cassino", color: "#3B82F6" },
-  { slug: "verabetbr",    label: "Vera",    color: "#10B981" },
+  { slug:"a7kbetbr",     label:"7K",      color:"#6366F1" },
+  { slug:"cassinobetbr", label:"Cassino", color:"#3B82F6" },
+  { slug:"verabetbr",    label:"Vera",    color:"#10B981" },
 ];
-
-// ── Tema: dark/light ──────────────────────────────────────
-// Exporta hook de tema para uso nas pages
-export function useTema() {
-  const [tema, setTema] = useState(() => localStorage.getItem("crm_tema") || "dark");
-
-  useEffect(() => {
-    localStorage.setItem("crm_tema", tema);
-    document.body.setAttribute("data-tema", tema);
-  }, [tema]);
-
-  function toggleTema() { setTema(t => t === "dark" ? "light" : "dark"); }
-
-  return { tema, toggleTema };
-}
-
-// Paletas centralizadas — importar nas pages se necessário
-export const TEMA = {
-  dark: {
-    bg:          "#020817",
-    sidebar:     "#050E1F",
-    card:        "#050E1F",
-    cardHover:   "#0A1628",
-    border:      "#0D1F3C",
-    borderHover: "rgba(99,102,241,0.4)",
-    text:        "#F1F5F9",
-    textMuted:   "#64748B",
-    textDim:     "#334155",
-    input:       "#050E1F",
-  },
-  light: {
-    bg:          "#F1F5F9",
-    sidebar:     "#FFFFFF",
-    card:        "#FFFFFF",
-    cardHover:   "#F8FAFC",
-    border:      "#E2E8F0",
-    borderHover: "rgba(99,102,241,0.5)",
-    text:        "#0F172A",
-    textMuted:   "#64748B",
-    textDim:     "#94A3B8",
-    input:       "#F8FAFC",
-  }
-};
 
 function IconeTipo({ tipo }) {
   if (tipo === "inicio")    return <PlayCircle size={13} color="#34D399" strokeWidth={2} />;
@@ -68,12 +26,13 @@ function labelTipo(n) {
 }
 
 export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas = () => {} }) {
-  const navigate        = useNavigate();
-  const location        = useLocation();
-  const path            = location.pathname;
+  const navigate  = useNavigate();
+  const location  = useLocation();
+  const path      = location.pathname;
   const [sinoAberto, setSinoAberto] = useState(false);
-  const { tema, toggleTema }        = useTema();
-  const t = TEMA[tema];
+
+  // ── Tema global ────────────────────────────────────────
+  const { tema, toggleTema, t } = useTemaCtx();
 
   function toggleSino() {
     setSinoAberto(v => {
@@ -94,8 +53,8 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
         border: active ? "1px solid rgba(99,102,241,0.2)" : "1px solid transparent",
         transition:"all 0.15s"
       }}
-        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = tema === "dark" ? "#0A1628" : "#F1F5F9"; e.currentTarget.style.color="#94A3B8"; }}}
-        onMouseLeave={e => { if (!active) { e.currentTarget.style.background="transparent"; e.currentTarget.style.color=t.textMuted; }}}
+        onMouseEnter={e => { if (!active) { e.currentTarget.style.background = t.cardHover; e.currentTarget.style.color="#94A3B8"; }}}
+        onMouseLeave={e => { if (!active) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = t.textMuted; }}}
       >
         <Icon size={15} strokeWidth={1.8} /> {label}
       </div>
@@ -111,7 +70,7 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
         transition:"background 0.2s, border-color 0.2s"
       }}>
 
-        {/* Logo + sino + toggle tema */}
+        {/* Logo + tema + sino */}
         <div style={{ padding:"24px 20px 20px", borderBottom:`1px solid ${t.border}` }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -125,7 +84,6 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
             </div>
 
             <div style={{ display:"flex", alignItems:"center", gap:4 }}>
-              {/* Toggle dark/light */}
               <button onClick={toggleTema} title={tema === "dark" ? "Modo claro" : "Modo escuro"} style={{
                 background:"transparent", border:"none", cursor:"pointer",
                 padding:4, borderRadius:8,
@@ -135,7 +93,6 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
                 {tema === "dark" ? <Sun size={15} strokeWidth={1.8} /> : <Moon size={15} strokeWidth={1.8} />}
               </button>
 
-              {/* Sininho */}
               <button onClick={toggleSino} style={{
                 position:"relative", background:"transparent", border:"none",
                 cursor:"pointer", padding:4, borderRadius:8,
@@ -146,10 +103,9 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
                 {totalNaoLidas > 0 && (
                   <span style={{
                     position:"absolute", top:0, right:0,
-                    width:8, height:8, borderRadius:"50%",
-                    background:"#EF4444",
+                    width:8, height:8, borderRadius:"50%", background:"#EF4444",
                     boxShadow:"0 0 6px rgba(239,68,68,0.8)",
-                    border:"1.5px solid #050E1F",
+                    border:`1.5px solid ${t.sidebar}`,
                     animation:"pulseDot 1.5s infinite"
                   }} />
                 )}
@@ -179,7 +135,7 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
                 border: active ? `1px solid ${m.color}44` : "1px solid transparent",
                 transition:"all 0.15s"
               }}
-                onMouseEnter={e => { if (!active) e.currentTarget.style.background = tema === "dark" ? "#0A1628" : "#F1F5F9"; }}
+                onMouseEnter={e => { if (!active) e.currentTarget.style.background = t.cardHover; }}
                 onMouseLeave={e => { if (!active) e.currentTarget.style.background = "transparent"; }}
               >
                 <div style={{ width:7, height:7, borderRadius:"50%", background:m.color, flexShrink:0 }} />
@@ -206,13 +162,11 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
         <>
           <div onClick={() => setSinoAberto(false)} style={{ position:"fixed", inset:0, zIndex:98 }} />
           <div style={{
-            position:"fixed", top:0, left:240, height:"100vh",
-            width:320, background:t.sidebar,
-            borderRight:`1px solid ${t.border}`,
+            position:"fixed", top:0, left:240, height:"100vh", width:320,
+            background:t.sidebar, borderRight:`1px solid ${t.border}`,
             zIndex:99, display:"flex", flexDirection:"column",
             boxShadow:"4px 0 24px rgba(0,0,0,0.4)",
-            animation:"slideInLeft 0.2s ease",
-            transition:"background 0.2s"
+            animation:"slideInLeft 0.2s ease", transition:"background 0.2s"
           }}>
             <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${t.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
@@ -260,8 +214,8 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
       )}
 
       <style>{`
-        @keyframes pulseDot  { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
-        @keyframes slideInLeft { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes pulseDot   { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
+        @keyframes slideInLeft{ from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
       `}</style>
     </>
   );
