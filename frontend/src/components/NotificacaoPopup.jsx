@@ -1,6 +1,9 @@
 import { AlertTriangle, Clock } from "lucide-react";
+import { useTemaCtx } from "../App";
 
 export default function NotificacaoPopup({ notificacao, onConfirmar }) {
+  const { t } = useTemaCtx();
+
   if (!notificacao) return null;
 
   const urgente = notificacao.minutos <= 5;
@@ -24,13 +27,14 @@ export default function NotificacaoPopup({ notificacao, onConfirmar }) {
         position:"fixed", top:"50%", left:"50%",
         transform:"translate(-50%,-50%)",
         zIndex:9999,
-        background:"#050E1F",
+        background:t.card,
         border:`1.5px solid ${corBd}`,
         borderRadius:16,
         padding:"32px 36px",
         width:420,
         boxShadow:`0 24px 60px rgba(0,0,0,0.6), 0 0 40px ${corBg}`,
-        animation:"slideUp 0.25s ease"
+        animation:"slideUp 0.25s ease",
+        transition:"background 0.2s"
       }}>
 
         <div style={{
@@ -46,25 +50,25 @@ export default function NotificacaoPopup({ notificacao, onConfirmar }) {
           {urgente ? "ENCERRAMENTO IMINENTE" : "AVISO DE ENCERRAMENTO"}
         </p>
 
-        <h2 style={{ fontSize:18, fontWeight:800, color:"#F1F5F9", marginBottom:6, lineHeight:1.3 }}>
+        <h2 style={{ fontSize:18, fontWeight:800, color:t.text, marginBottom:6, lineHeight:1.3 }}>
           Faltam {notificacao.minutos} minutos
         </h2>
 
-        <p style={{ fontSize:13, color:"#94A3B8", marginBottom:20, lineHeight:1.6 }}>
+        <p style={{ fontSize:13, color:t.textSub, marginBottom:20, lineHeight:1.6 }}>
           A campanha{" "}
-          <span style={{ color:"#E2E8F0", fontWeight:600 }}>"{notificacao.resumo}"</span>
+          <span style={{ color:t.text, fontWeight:600 }}>"{notificacao.resumo}"</span>
           {" "}({notificacao.chave}) encerra às{" "}
-          <span style={{ color:"#E2E8F0", fontWeight:600 }}>{notificacao.horario}</span>.
+          <span style={{ color:t.text, fontWeight:600 }}>{notificacao.horario}</span>.
         </p>
 
         <div style={{
           display:"flex", alignItems:"center", gap:8,
-          background:"#0A1628", borderRadius:8, padding:"10px 14px",
-          marginBottom:24, border:"1px solid #0D1F3C"
+          background:t.cardAlt, borderRadius:8, padding:"10px 14px",
+          marginBottom:24, border:`1px solid ${t.border}`
         }}>
-          <Clock size={13} color="#475569" strokeWidth={2} />
-          <span style={{ fontSize:12, color:"#64748B" }}>Encerramento programado:</span>
-          <span style={{ fontSize:12, color:"#94A3B8", fontWeight:600 }}>{notificacao.horario}</span>
+          <Clock size={13} color={t.textMuted} strokeWidth={2} />
+          <span style={{ fontSize:12, color:t.textMuted }}>Encerramento programado:</span>
+          <span style={{ fontSize:12, color:t.textSub, fontWeight:600 }}>{notificacao.horario}</span>
         </div>
 
         <button onClick={onConfirmar} style={{
@@ -83,8 +87,8 @@ export default function NotificacaoPopup({ notificacao, onConfirmar }) {
       </div>
 
       <style>{`
-        @keyframes fadeIn  { from { opacity:0 } to { opacity:1 } }
-        @keyframes slideUp { from { opacity:0; transform:translate(-50%,-46%) } to { opacity:1; transform:translate(-50%,-50%) } }
+        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+        @keyframes slideUp { from{opacity:0;transform:translate(-50%,-46%)} to{opacity:1;transform:translate(-50%,-50%)} }
       `}</style>
     </>
   );
