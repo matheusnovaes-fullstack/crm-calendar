@@ -1,4 +1,3 @@
-// Sidebar.jsx
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTemaCtx } from "../App";
@@ -26,9 +25,9 @@ function labelTipo(n) {
 }
 
 export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas = () => {} }) {
-  const navigate  = useNavigate();
-  const location  = useLocation();
-  const path      = location.pathname;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const path     = location.pathname;
   const [sinoAberto, setSinoAberto] = useState(false);
 
   const { tema, toggleTema, t } = useTemaCtx();
