@@ -94,10 +94,89 @@ function DataProvider({ children }) {
   );
 }
 
+// ── Controle de sessão ─────────────────────────────────────
+const TEMPO_SESSAO_MS = 60 * 60 * 1000; // 1h
+
+function limparSessao() {
+  localStorage.removeItem("crm_email");
+  localStorage.removeItem("crm_nome");
+  localStorage.removeItem("crm_avatar");
+  localStorage.removeItem("crm_login_at");
+  localStorage.removeItem("crm_expires_at");
+}
+
 // ── App principal ──────────────────────────────────────────
 function AppContent() {
   const { visivel, abrir, fechar } = useTutorial();
-  const [email, setEmail] = useState(localStorage.getItem("crm_email") || "");
+
+  const [email, setEmail] = useState(() => {
+    const emailSalvo   = localStorage.getItem("crm_email");
+    const expiresAtStr = localStorage.getItem("crm_expires_at");
+    const agora        = Date.now();
+
+    if (!emailSalvo || !expiresAtStr) {
+      limparSessao();
+      return "";
+    }
+
+    const expiresAt = Number(expiresAtStr);
+    if (Number.isNaN(expiresAt) || agora > expiresAt) {
+      limparSessao();
+      localStorage.setItem("crm_session_expired", "1");
+      return "";
+    }
+
+    return emailSalvo;
+  });
+
+  // sempre que logar, grava horário e expiração
+  function handleLogin(emailNovo) {
+    const agora = Date.now();
+    localStorage.setItem("crm_login_at",   String(agora));
+    localStorage.setItem("crm_expires_at", String(agora + TEMPO_SESSAO_MS));
+    setEmail(emailNovo);
+  }
+
+  // renova expiração quando houver atividade do usuário
+  useEffect(() => {
+    if (!email) return;
+
+    const atualizarExpiracao = () => {
+      const agora = Date.now();
+      localStorage.setItem("crm_expires_at", String(agora + TEMPO_SESSAO_MS));
+    };
+
+    const eventos = ["mousemove", "keydown", "click", "scroll", "touchstart"];
+    eventos.forEach(ev => window.addEventListener(ev, atualizarExpiracao));
+
+    return () => {
+      eventos.forEach(ev => window.removeEventListener(ev, atualizarExpiracao));
+    };
+  }, [email]);
+
+  // timer para derrubar sessão mesmo se a aba ficar parada
+  useEffect(() => {
+    if (!email) return;
+
+    const checarSessao = () => {
+      const expiresAtStr = localStorage.getItem("crm_expires_at");
+      if (!expiresAtStr) {
+        limparSessao();
+        setEmail("");
+        localStorage.setItem("crm_session_expired", "1");
+        return;
+      }
+      const expiresAt = Number(expiresAtStr);
+      if (Number.isNaN(expiresAt) || Date.now() > expiresAt) {
+        limparSessao();
+        setEmail("");
+        localStorage.setItem("crm_session_expired", "1");
+      }
+    };
+
+    const id = setInterval(checarSessao, 60 * 1000); // checa a cada 1min
+    return () => clearInterval(id);
+  }, [email]);
 
   if (MANUTENCAO.ativo) {
     return (
@@ -110,7 +189,7 @@ function AppContent() {
   }
 
   if (!email) {
-    return <LoginPage onLogin={setEmail} />;
+    return <LoginPage onLogin={handleLogin} />;
   }
 
   return (
