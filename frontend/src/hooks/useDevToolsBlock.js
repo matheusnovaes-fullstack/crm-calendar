@@ -1,5 +1,5 @@
-// src/hooks/useDevToolsBlock.js - VERSÃO ESTÁVEL
-import { useEffect, useState, useCallback, useRef } from 'react';
+// src/hooks/useDevToolsBlock.js
+import { useEffect, useState } from 'react';
 
 export const useDevToolsBlock = () => {
   const [debugMode] = useState(() => {
@@ -7,75 +7,97 @@ export const useDevToolsBlock = () => {
     return urlParams.get('debug') === 'true';
   });
 
-  const isInitialized = useRef(false);
-  const baselineSet = useRef(false);
-  const devtoolsDetected = useRef(false);
-
   useEffect(() => {
-    if (debugMode || devtoolsDetected.current) return;
+    if (debugMode) return;
 
-    // 🔪 BLOQUEIA CONSOLE (leve)
+    // 1. BLOQUEIA CONSOLE COMPLETAMENTE
     const noop = () => {};
-    ['log', 'debug', 'info', 'warn', 'error'].forEach(method => {
+    ['log', 'debug', 'info', 'warn', 'error', 'clear', 'table'].forEach(method => {
       console[method] = noop;
     });
 
-    // 🔪 BLOQUEIA REACT DEVTOOLS
-    delete window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+    // 2. BLOQUEIA REACT DEVTOOLS
+    const reactHook = window.__REACT_DEVTOOLS_GLOBAL_HOOK__;
+    if (reactHook) {
+      Object.keys(reactHook).forEach(key => {
+        reactHook[key] = () => {};
+      });
+    }
 
-    // 📏 ESTABELECE BASELINE APÓS 3 SEGUNDOS (evita falsos positivos)
-    const establishBaseline = () => {
-      if (baselineSet.current || devtoolsDetected.current) return;
-      
-      baselineSet.current = true;
-      isInitialized.current = true;
-    };
+    // 3. VARIÁVEIS DE DETECÇÃO
+    let devtoolsOpen = false;
+    let prevWidth = window.outerWidth;
+    let prevHeight = window.outerHeight;
+    let prevDocHeight = document.documentElement.offsetHeight;
 
-    const timeoutId = setTimeout(establishBaseline, 3000);
+    const checkDevTools = () => {
+      const width = window.outerWidth;
+      const height = window.outerHeight;
+      const docHeight = document.documentElement.offsetHeight;
 
-    // DETECTOR CALIBRADO (só após baseline)
-    const detectDevTools = useCallback(() => {
-      if (!isInitialized.current || !baselineSet.current || devtoolsDetected.current) return;
-
-      const outerWidth = window.outerWidth;
-      const outerHeight = window.outerHeight;
-      const innerWidth = window.innerWidth;
-      const innerHeight = window.innerHeight;
-
-      // CALIBRAÇÃO: só detecta se diferença > 100px (DevTools típica)
-      const widthDiff = Math.abs(outerWidth - innerWidth);
-      const heightDiff = Math.abs(outerHeight - innerHeight);
-
-      if (widthDiff > 100 || heightDiff > 100) {
-        devtoolsDetected.current = true;
-        alert('Ferramentas de desenvolvedor detectadas!');
-        window.location.href = window.location.origin + window.location.pathname;
-      }
-    }, []);
-
-    // HOOKS (intervalo mais relaxado)
-    const intervalId = setInterval(detectDevTools, 1000); // 1s ao invés de 100ms
-
-    // EVENTOS
-    const blockKeys = (e) => {
-      const forbidden = ['F12'];
-      if (forbidden.includes(e.code)) {
-        e.preventDefault();
-        e.stopImmediatePropagation();
-        devtoolsDetected.current = true;
+      // DevTools altera dimensões ou altura do documento
+      if (width !== prevWidth || height !== prevHeight || docHeight !== prevDocHeight) {
+        devtoolsOpen = true;
         window.location.reload();
       }
+      
+      prevWidth = width;
+      prevHeight = height;
+      prevDocHeight = docHeight;
     };
 
-    document.addEventListener('contextmenu', (e) => e.preventDefault(), true);
-    window.addEventListener('keydown', blockKeys, true);
-    window.addEventListener('resize', detectDevTools);
+    // 4. BLOQUEIA TODAS AS TECLAS SUSPEITAS
+    const blockKeys = (e) => {
+      const forbidden = [
+        'F12',
+        'KeyI', 'KeyJ', 'KeyK', 'KeyL',  // DevTools comuns
+        'F1', 'F2', 'F3', 'F4', 'F5',    // Function keys
+        'KeyU'                           // Ctrl+U (view source)
+      ];
+      
+      // Combinações comuns
+      if (forbidden.includes(e.code) || 
+          (e.ctrlKey && e.shiftKey && ['KeyI', 'KeyJ', 'KeyC'].includes(e.code)) ||
+          (e.ctrlKey && e.shiftKey && e.code === 'KeyK') ||
+          (e.ctrlKey && e.code === 'KeyU') ||
+          (e.ctrlKey && e.shiftKey && e.code === 'KeyE')) {  // Ctrl+Shift+E (Network)
+        e.preventDefault();
+        e.stopPropagation();
+        window.location.reload();
+        return false;
+      }
+    };
 
+    // 5. BLOQUEIA MENU DE CONTEXTO (Mais ferramentas incluso)
+    document.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.location.reload();
+      return false;
+    });
+
+    // 6. BLOQUEIA INSPECIONAR ELEMENTO VIA MENU
+    document.addEventListener('mousedown', (e) => {
+      if (e.detail === 3) { // Clique triplo (inspecionar)
+        e.preventDefault();
+        window.location.reload();
+      }
+    });
+
+    // 7. HOOKS DE DETECÇÃO
+    window.addEventListener('keydown', blockKeys, true);  // Capture phase
+    window.addEventListener('resize', checkDevTools);
+    window.addEventListener('load', checkDevTools);
+
+    // LOOP AGRESSIVO DE DETECÇÃO (250ms)
+    const interval = setInterval(checkDevTools, 250);
+
+    // Cleanup
     return () => {
-      clearTimeout(timeoutId);
-      clearInterval(intervalId);
+      clearInterval(interval);
       window.removeEventListener('keydown', blockKeys, true);
-      window.removeEventListener('resize', detectDevTools);
+      window.removeEventListener('resize', checkDevTools);
+      window.removeEventListener('load', checkDevTools);
     };
   }, [debugMode]);
 };
