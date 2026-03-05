@@ -13,7 +13,6 @@ import { useIssues } from "./hooks/useIssues";
 import { useNotificacoes } from "./hooks/useNotificacoes";
 import MANUTENCAO from "./config/manutencao";
 import ManutencaoScreen from "./components/ManutencaoScreen";
-import { useDevToolsBlock } from "./hooks/useDevToolsBlock"; // ← NOVO
 
 // ── Contexts ──────────────────────────────────────────────
 export const IssuesContext       = createContext(null);
@@ -109,9 +108,6 @@ function limparSessao() {
 // ── App principal ──────────────────────────────────────────
 function AppContent() {
   const { visivel, abrir, fechar } = useTutorial();
-
-  // ← TRAVA DEVTOOLS (NOVA)
-  useDevToolsBlock();
 
   const [email, setEmail] = useState(() => {
     const emailSalvo   = localStorage.getItem("crm_email");
