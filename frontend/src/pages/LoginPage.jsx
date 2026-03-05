@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 
 const DOMINIOS_PERMITIDOS = [
   "anagaming.com.br",
@@ -22,16 +23,25 @@ const IconCalendar = ({ size = 26 }) => (
   </svg>
 );
 
+const IconGoogle = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    <path fill="none" d="M0 0h48v48H0z"/>
+  </svg>
+);
+
 export default function LoginPage({ onLogin }) {
-  const [email, setEmail]             = useState("");
-  const [erro, setErro]               = useState("");
-  const [loading, setLoading]         = useState(false);
-  const [bemVindo, setBemVindo]       = useState(false);
-  const [nome, setNome]               = useState("");
-  const [cardOpacity, setCardOpacity] = useState(0);
-  const [cardY, setCardY]             = useState(24);
+  const [erro,         setErro]         = useState("");
+  const [loading,      setLoading]      = useState(false);
+  const [bemVindo,     setBemVindo]     = useState(false);
+  const [nome,         setNome]         = useState("");
+  const [cardOpacity,  setCardOpacity]  = useState(0);
+  const [cardY,        setCardY]        = useState(24);
   const [welcomePhase, setWelcomePhase] = useState(0);
-  // 0 = oculto | 1 = iniciando | 2 = visível | 3 = fade-out
+  const [emailUsuario, setEmailUsuario] = useState("");
 
   useEffect(() => {
     setTimeout(() => { setCardOpacity(1); setCardY(0); }, 100);
@@ -39,30 +49,54 @@ export default function LoginPage({ onLogin }) {
 
   useEffect(() => {
     if (!bemVindo) return;
-    setTimeout(() => setWelcomePhase(1), 50);
-    setTimeout(() => setWelcomePhase(2), 700);
+    setTimeout(() => setWelcomePhase(1),   50);
+    setTimeout(() => setWelcomePhase(2),  700);
     setTimeout(() => setWelcomePhase(3), 2800);
-    setTimeout(() => onLogin(email), 3600);
+    setTimeout(() => onLogin(emailUsuario), 3600);
   }, [bemVindo]);
 
-  function handleSubmit(e) {
-    e.preventDefault();
-    const dominio = email.split("@")[1]?.toLowerCase();
-    if (DOMINIOS_PERMITIDOS.includes(dominio)) {
+  const login = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
       setLoading(true);
-      const primeiroNome = email.split("@")[0].split(".")[0];
-      setNome(primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1));
-      localStorage.setItem("crm_email", email);
-      setTimeout(() => { setLoading(false); setBemVindo(true); }, 900);
-    } else {
-      setErro("Email não autorizado.");
+      setErro("");
+      try {
+        const res  = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` }
+        });
+        const user = await res.json();
+        const dominio = user.email?.split("@")[1]?.toLowerCase();
+
+        if (!DOMINIOS_PERMITIDOS.includes(dominio)) {
+          setErro(`Domínio @${dominio} não autorizado.`);
+          setLoading(false);
+          return;
+        }
+
+        localStorage.setItem("crm_email",  user.email);
+        localStorage.setItem("crm_nome",   user.name);
+        localStorage.setItem("crm_avatar", user.picture);
+
+        const primeiroNome = user.given_name || user.name.split(" ")[0];
+        setNome(primeiroNome);
+        setEmailUsuario(user.email);
+        setLoading(false);
+        setBemVindo(true);
+
+      } catch {
+        setErro("Erro ao verificar sua conta. Tente novamente.");
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      setErro("Login cancelado ou falhou. Tente novamente.");
+      setLoading(false);
     }
-  }
+  });
 
   const welcomeOpacity = welcomePhase === 2 ? 1 : 0;
   const welcomeScale   = welcomePhase === 2 ? 1 : 0.92;
 
-  // ─── TELA DE BEM-VINDO ───────────────────────────────────────────
+  // ─── TELA DE BEM-VINDO ────────────────────────────────────────────
   if (bemVindo) {
     return (
       <>
@@ -79,7 +113,7 @@ export default function LoginPage({ onLogin }) {
           }
           @keyframes shimmer {
             0%   { background-position: -200% center; }
-            100% { background-position: 200% center; }
+            100% { background-position:  200% center; }
           }
         `}</style>
 
@@ -89,7 +123,6 @@ export default function LoginPage({ onLogin }) {
           display:"flex", alignItems:"center", justifyContent:"center",
           overflow:"hidden",
         }}>
-          {/* Partículas */}
           {PARTICLES.map(p => (
             <div key={p.id} style={{
               position:"absolute", left:p.left, bottom:"-10px",
@@ -100,15 +133,13 @@ export default function LoginPage({ onLogin }) {
             }} />
           ))}
 
-          {/* Anéis pulsantes */}
           <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.35)", animation:"pulseRing 2s ease-out infinite" }} />
           <div style={{ position:"absolute", width:200, height:200, borderRadius:"50%", border:"1px solid rgba(99,102,241,0.2)",  animation:"pulseRing 2s 0.7s ease-out infinite" }} />
 
-          {/* Conteúdo central */}
           <div style={{
             textAlign:"center", zIndex:10,
             transition:"opacity 0.8s cubic-bezier(.4,0,.2,1), transform 0.8s cubic-bezier(.4,0,.2,1)",
-            opacity: welcomeOpacity,
+            opacity:   welcomeOpacity,
             transform: `scale(${welcomeScale})`,
           }}>
             <div style={{
@@ -131,11 +162,10 @@ export default function LoginPage({ onLogin }) {
               Bem-vindo, {nome}!
             </h1>
 
-            <p style={{ color:"#475569", fontSize:"0.95rem", fontFamily:"Inter, sans-serif", letterSpacing:"0.5px" }}>
+            <p style={{ color:"#475569", fontSize:"0.95rem", fontFamily:"Inter, sans-serif" }}>
               Entrando no CRM Calendar...
             </p>
 
-            {/* Barra de progresso */}
             <div style={{ marginTop:28, width:200, margin:"28px auto 0", background:"rgba(99,102,241,0.12)", borderRadius:99, height:3, overflow:"hidden" }}>
               <div style={{
                 height:"100%", borderRadius:99,
@@ -151,7 +181,7 @@ export default function LoginPage({ onLogin }) {
     );
   }
 
-  // ─── TELA DE LOGIN ───────────────────────────────────────────────
+  // ─── TELA DE LOGIN ────────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -166,48 +196,31 @@ export default function LoginPage({ onLogin }) {
           0%   { transform: translateY(0); }
           100% { transform: translateY(60px); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-        .login-input {
-          padding: 0.8rem 1rem;
-          border-radius: 10px;
-          border: 1px solid #1e293b;
-          background: #020817;
-          color: #f1f5f9;
-          font-size: 0.9rem;
-          font-family: Inter, sans-serif;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .google-btn {
           width: 100%;
-          box-sizing: border-box;
-        }
-        .login-input:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
-        }
-        .login-input::placeholder { color: #334155; }
-        .login-btn {
           padding: 0.85rem;
           border-radius: 10px;
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
-          color: #fff;
-          border: none;
+          background: #fff;
+          color: #1f2937;
+          border: 1px solid #e5e7eb;
           cursor: pointer;
-          font-weight: 700;
-          font-size: 0.95rem;
+          font-weight: 600;
+          font-size: 0.9rem;
           font-family: Inter, sans-serif;
-          letter-spacing: 0.3px;
-          transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-          box-shadow: 0 4px 24px rgba(99,102,241,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          transition: all 0.2s;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
         }
-        .login-btn:hover:not(:disabled) {
-          opacity: 0.92;
+        .google-btn:hover:not(:disabled) {
+          background: #f9fafb;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
           transform: translateY(-1px);
-          box-shadow: 0 8px 32px rgba(99,102,241,0.45);
         }
-        .login-btn:active:not(:disabled) { transform: translateY(0); }
-        .login-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+        .google-btn:disabled { opacity: 0.7; cursor: not-allowed; }
       `}</style>
 
       <div style={{
@@ -217,7 +230,6 @@ export default function LoginPage({ onLogin }) {
         overflow:"hidden", position:"relative",
       }}>
 
-        {/* Grid animado */}
         <div style={{
           position:"absolute", inset:0, opacity:0.04,
           backgroundImage:`linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)`,
@@ -225,7 +237,6 @@ export default function LoginPage({ onLogin }) {
           animation:"gridMove 4s linear infinite",
         }} />
 
-        {/* Partículas */}
         {PARTICLES.map(p => (
           <div key={p.id} style={{
             position:"absolute", left:p.left, bottom:"-10px",
@@ -235,14 +246,12 @@ export default function LoginPage({ onLogin }) {
           }} />
         ))}
 
-        {/* Glow central */}
         <div style={{
           position:"absolute", width:500, height:500, borderRadius:"50%",
           background:"radial-gradient(circle, rgba(99,102,241,0.08) 0%, transparent 70%)",
           pointerEvents:"none",
         }} />
 
-        {/* Card */}
         <div style={{
           position:"relative", zIndex:10,
           background:"rgba(5,14,31,0.85)",
@@ -253,10 +262,9 @@ export default function LoginPage({ onLogin }) {
           boxShadow:"0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.08)",
           transition:"opacity 0.6s ease, transform 0.6s ease",
           opacity: cardOpacity,
-          transform: `translateY(${cardY}px)`,
+          transform:`translateY(${cardY}px)`,
         }}>
 
-          {/* Ícone + título */}
           <div style={{ textAlign:"center", marginBottom:"1.75rem" }}>
             <div style={{
               width:56, height:56, borderRadius:16, margin:"0 auto 14px",
@@ -274,44 +282,36 @@ export default function LoginPage({ onLogin }) {
             </p>
           </div>
 
-          {/* Divisória */}
-          <div style={{ height:1, background:"linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent)", marginBottom:"1.75rem" }} />
+          <div style={{ height:1, background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.3),transparent)", marginBottom:"1.75rem" }} />
 
-          <form onSubmit={handleSubmit} style={{ display:"flex", flexDirection:"column", gap:"0.85rem" }}>
-            <div>
-              <label style={{ fontSize:"0.75rem", fontWeight:600, color:"#475569", letterSpacing:"0.8px", display:"block", marginBottom:6 }}>
-                EMAIL CORPORATIVO
-              </label>
-              <input
-                className="login-input"
-                type="email"
-                placeholder="voce@suaempresa.com.br"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setErro(""); }}
-                required
-                autoComplete="email"
-              />
+          {erro && (
+            <div style={{
+              background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)",
+              borderRadius:8, padding:"10px 14px",
+              display:"flex", alignItems:"center", gap:8, marginBottom:16
+            }}>
+              <span style={{ fontSize:14 }}>⚠️</span>
+              <p style={{ color:"#f87171", margin:0, fontSize:"0.82rem" }}>{erro}</p>
             </div>
+          )}
 
-            {erro && (
-              <div style={{
-                background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)",
-                borderRadius:8, padding:"8px 12px", display:"flex", alignItems:"center", gap:8,
-              }}>
-                <span style={{ fontSize:14 }}>⚠️</span>
-                <p style={{ color:"#f87171", margin:0, fontSize:"0.82rem" }}>{erro}</p>
-              </div>
+          <button
+            className="google-btn"
+            onClick={() => { setErro(""); setLoading(true); login(); }}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span style={{ width:16, height:16, border:"2px solid #d1d5db", borderTopColor:"#6366f1", borderRadius:"50%", display:"inline-block", animation:"spin 0.7s linear infinite" }} />
+                Verificando...
+              </>
+            ) : (
+              <>
+                <IconGoogle />
+                Entrar com Google
+              </>
             )}
-
-            <button className="login-btn" type="submit" disabled={loading} style={{ marginTop:4 }}>
-              {loading ? (
-                <span style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-                  <span style={{ width:14, height:14, border:"2px solid rgba(255,255,255,0.3)", borderTopColor:"#fff", borderRadius:"50%", display:"inline-block", animation:"spin 0.7s linear infinite" }} />
-                  Verificando...
-                </span>
-              ) : "Entrar →"}
-            </button>
-          </form>
+          </button>
 
           <p style={{ textAlign:"center", color:"#1e293b", fontSize:"0.72rem", marginTop:"1.5rem", marginBottom:0, letterSpacing:"0.3px" }}>
             Acesso restrito a domínios autorizados
