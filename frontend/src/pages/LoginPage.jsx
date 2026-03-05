@@ -49,9 +49,9 @@ export default function LoginPage({ onLogin }) {
 
   useEffect(() => {
     if (!bemVindo) return;
-    setTimeout(() => setWelcomePhase(1),   50);
-    setTimeout(() => setWelcomePhase(2),  700);
-    setTimeout(() => setWelcomePhase(3), 2800);
+    setTimeout(() => setWelcomePhase(1),    50);
+    setTimeout(() => setWelcomePhase(2),   700);
+    setTimeout(() => setWelcomePhase(3),  2800);
     setTimeout(() => onLogin(emailUsuario), 3600);
   }, [bemVindo]);
 
@@ -96,7 +96,6 @@ export default function LoginPage({ onLogin }) {
   const welcomeOpacity = welcomePhase === 2 ? 1 : 0;
   const welcomeScale   = welcomePhase === 2 ? 1 : 0.92;
 
-  // ─── TELA DE BEM-VINDO ────────────────────────────────────────────
   if (bemVindo) {
     return (
       <>
@@ -166,7 +165,7 @@ export default function LoginPage({ onLogin }) {
               Entrando no CRM Calendar...
             </p>
 
-            <div style={{ marginTop:28, width:200, margin:"28px auto 0", background:"rgba(99,102,241,0.12)", borderRadius:99, height:3, overflow:"hidden" }}>
+            <div style={{ width:200, margin:"28px auto 0", background:"rgba(99,102,241,0.12)", borderRadius:99, height:3, overflow:"hidden" }}>
               <div style={{
                 height:"100%", borderRadius:99,
                 background:"linear-gradient(90deg,#6366f1,#8b5cf6)",
@@ -181,7 +180,6 @@ export default function LoginPage({ onLogin }) {
     );
   }
 
-  // ─── TELA DE LOGIN ────────────────────────────────────────────────
   return (
     <>
       <style>{`
