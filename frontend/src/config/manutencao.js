@@ -1,5 +1,5 @@
 const MANUTENCAO = {
-  ativo:    true,
+  ativo:    false,
   titulo:   "Sistema em Manutenção",
   mensagem: "Estamos realizando melhorias no CRM Calendar. Voltamos em breve!",
   previsao: "06/03 às 12:00", 
