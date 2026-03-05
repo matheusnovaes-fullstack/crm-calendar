@@ -43,8 +43,20 @@ export default function LoginPage({ onLogin }) {
   const [welcomePhase, setWelcomePhase] = useState(0);
   const [emailUsuario, setEmailUsuario] = useState("");
 
+  const [msgSessao,     setMsgSessao]     = useState("");
+  const [mostrarVoltar, setMostrarVoltar] = useState(false);
+
   useEffect(() => {
     setTimeout(() => { setCardOpacity(1); setCardY(0); }, 100);
+  }, []);
+
+  // se a sessão expirou, mostra mensagem
+  useEffect(() => {
+    if (localStorage.getItem("crm_session_expired") === "1") {
+      setMsgSessao("Sessão expirada por inatividade. Para sua segurança, faça login novamente.");
+      setMostrarVoltar(true);
+      localStorage.removeItem("crm_session_expired");
+    }
   }, []);
 
   useEffect(() => {
@@ -53,7 +65,7 @@ export default function LoginPage({ onLogin }) {
     setTimeout(() => setWelcomePhase(2),   700);
     setTimeout(() => setWelcomePhase(3),  2800);
     setTimeout(() => onLogin(emailUsuario), 3600);
-  }, [bemVindo]);
+  }, [bemVindo, emailUsuario, onLogin]);
 
   const login = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
@@ -76,6 +88,12 @@ export default function LoginPage({ onLogin }) {
         localStorage.setItem("crm_nome",   user.name);
         localStorage.setItem("crm_avatar", user.picture);
 
+        // sessão de 1h
+        const agora    = Date.now();
+        const UMA_HORA = 60 * 60 * 1000;
+        localStorage.setItem("crm_login_at",   String(agora));
+        localStorage.setItem("crm_expires_at", String(agora + UMA_HORA));
+
         const primeiroNome = user.given_name || user.name.split(" ")[0];
         setNome(primeiroNome);
         setEmailUsuario(user.email);
@@ -96,6 +114,7 @@ export default function LoginPage({ onLogin }) {
   const welcomeOpacity = welcomePhase === 2 ? 1 : 0;
   const welcomeScale   = welcomePhase === 2 ? 1 : 0.92;
 
+  // ─── TELA DE BEM-VINDO ────────────────────────────────────────────
   if (bemVindo) {
     return (
       <>
@@ -180,6 +199,7 @@ export default function LoginPage({ onLogin }) {
     );
   }
 
+  // ─── TELA DE LOGIN ────────────────────────────────────────────────
   return (
     <>
       <style>{`
@@ -263,6 +283,7 @@ export default function LoginPage({ onLogin }) {
           transform:`translateY(${cardY}px)`,
         }}>
 
+          {/* Cabeçalho */}
           <div style={{ textAlign:"center", marginBottom:"1.75rem" }}>
             <div style={{
               width:56, height:56, borderRadius:16, margin:"0 auto 14px",
@@ -282,6 +303,38 @@ export default function LoginPage({ onLogin }) {
 
           <div style={{ height:1, background:"linear-gradient(90deg,transparent,rgba(99,102,241,0.3),transparent)", marginBottom:"1.75rem" }} />
 
+          {/* Mensagem de sessão expirada */}
+          {msgSessao && (
+            <div style={{
+              background:"rgba(250,204,21,0.12)",
+              border:"1px solid rgba(250,204,21,0.35)",
+              borderRadius:8, padding:"10px 14px",
+              display:"flex", alignItems:"flex-start", gap:8, marginBottom:12
+            }}>
+              <span style={{ fontSize:14 }}>⏰</span>
+              <div>
+                <p style={{ color:"#EAB308", margin:0, fontSize:"0.82rem" }}>{msgSessao}</p>
+                {mostrarVoltar && (
+                  <button
+                    onClick={() => { setMsgSessao(""); setMostrarVoltar(false); }}
+                    style={{
+                      marginTop:6, fontSize:"0.78rem",
+                      background:"transparent",
+                      color:"#bfdbfe",
+                      border:"none",
+                      cursor:"pointer",
+                      padding:0,
+                      textDecoration:"underline"
+                    }}
+                  >
+                    Voltar para a tela de login
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Erro padrão */}
           {erro && (
             <div style={{
               background:"rgba(239,68,68,0.08)", border:"1px solid rgba(239,68,68,0.2)",
@@ -293,6 +346,7 @@ export default function LoginPage({ onLogin }) {
             </div>
           )}
 
+          {/* Botão Google */}
           <button
             className="google-btn"
             onClick={() => { setErro(""); setLoading(true); login(); }}
