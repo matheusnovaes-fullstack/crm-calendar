@@ -31,8 +31,18 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
   const path      = location.pathname;
   const [sinoAberto, setSinoAberto] = useState(false);
 
-  // ── Tema global ────────────────────────────────────────
   const { tema, toggleTema, t } = useTemaCtx();
+
+  const nomeUsuario   = localStorage.getItem("crm_nome")   || "Time CRM";
+  const avatarUsuario = localStorage.getItem("crm_avatar") || null;
+  const emailUsuario  = localStorage.getItem("crm_email")  || "Ana Gaming";
+
+  function handleLogout() {
+    localStorage.removeItem("crm_email");
+    localStorage.removeItem("crm_nome");
+    localStorage.removeItem("crm_avatar");
+    window.location.reload();
+  }
 
   function toggleSino() {
     setSinoAberto(v => {
@@ -148,11 +158,36 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
         <div style={{ flex:1 }} />
 
         {/* User */}
-        <div style={{ padding:"16px 20px", borderTop:`1px solid ${t.border}`, display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:30, height:30, background:"linear-gradient(135deg,#6366F1,#8B5CF6)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff" }}>C</div>
+        <div
+          onClick={handleLogout}
+          title="Clique para sair"
+          style={{
+            padding:"16px 20px", borderTop:`1px solid ${t.border}`,
+            display:"flex", alignItems:"center", gap:10,
+            cursor:"pointer", transition:"opacity 0.15s"
+          }}
+          onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+          onMouseLeave={e => e.currentTarget.style.opacity="1"}
+        >
+          {avatarUsuario ? (
+            <img
+              src={avatarUsuario}
+              alt="avatar"
+              style={{ width:30, height:30, borderRadius:"50%", objectFit:"cover" }}
+            />
+          ) : (
+            <div style={{
+              width:30, height:30,
+              background:"linear-gradient(135deg,#6366F1,#8B5CF6)",
+              borderRadius:"50%", display:"flex", alignItems:"center",
+              justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff"
+            }}>
+              {nomeUsuario.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
-            <p style={{ fontSize:12, fontWeight:600, color:t.text }}>Time CRM</p>
-            <p style={{ fontSize:10, color:t.textMuted }}>Ana Gaming</p>
+            <p style={{ fontSize:12, fontWeight:600, color:t.text }}>{nomeUsuario}</p>
+            <p style={{ fontSize:10, color:t.textMuted }}>{emailUsuario}</p>
           </div>
         </div>
       </aside>
@@ -214,8 +249,8 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
       )}
 
       <style>{`
-        @keyframes pulseDot   { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
-        @keyframes slideInLeft{ from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
+        @keyframes pulseDot    { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.7} }
+        @keyframes slideInLeft { from{opacity:0;transform:translateX(-12px)} to{opacity:1;transform:translateX(0)} }
       `}</style>
     </>
   );
