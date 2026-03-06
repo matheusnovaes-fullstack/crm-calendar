@@ -114,7 +114,8 @@ export default function PromoPage() {
     { label:"Prioridade",         value:issue.prioridade       },
     { label:"Casa",               value:issue.casa             },
     { label:"Jogo",               value:issue.jogo             },
-    { label:"Segmento / Público", value:issue.segmento         },
+    { label:"Segmento / Público", value:issue.segmento         }, // já existia
+    { label:"Tipo de Prêmio",     value:issue.tipoPremio       }, // 🔥 NOVO
     { label:"ID Cliente VIP",     value:issue.id_cliente_vip   },
     { label:"Aplicação",          value:issue.aplicacao        },
     { label:"Valor Ingresso",     value:issue.valor_ingresso   },
