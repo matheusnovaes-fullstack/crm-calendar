@@ -32,6 +32,14 @@ const extrairTexto = (doc) => {
     .trim() || null;
 };
 
+// Helper para campos select/multiselect/text do Jira
+const extrairValor = (campo) => {
+  if (!campo) return null;
+  if (typeof campo === "string") return campo;
+  if (Array.isArray(campo)) return campo.map(v => v?.value || v?.name || v).filter(Boolean).join(", ");
+  return campo.value || campo.name || null;
+};
+
 async function buscarIssues(projeto) {
   console.log(`🔍 Buscando issues do projeto ${projeto}...`);
   try {
@@ -48,9 +56,9 @@ async function buscarIssues(projeto) {
           "customfield_14439","customfield_14440",
           "customfield_12689",
           "customfield_14438", // Nome da Promoção
-          "customfield_11727", // Jogo ✅
-          "customfield_17929", // Segmento / Público ✅
-          "customfield_17930", // Tipo de Prêmio
+          "customfield_11727", // Jogo
+          "customfield_17929", // Segmento / Público 🔥
+          "customfield_17930", // Tipo de Prêmio 🔥
           "customfield_17036", // ID Cliente VIP
           "customfield_14447", // Responsável campanha
           "customfield_14443", // Descrição do benefício
@@ -106,8 +114,9 @@ async function buscarIssues(projeto) {
         sla_breached:     ciclo.breached || false,
         sla_restante:     ciclo.remainingTime?.friendly || null,
         nome_promocao:    f.customfield_14438 || null,
-        jogo:             f.customfield_11727?.value || f.customfield_11727 || null, // ✅
-        segmento:         f.customfield_14441?.value || f.customfield_14441 || null, // ✅
+        jogo:             f.customfield_11727?.value || f.customfield_11727 || null,
+        segmento:         extrairValor(f.customfield_17929),  // 🔥 CORRIGIDO (era 14441)
+        tipo_premio:      extrairValor(f.customfield_17930),  // 🔥 NOVO
         brand:            f.customfield_12755 || null,
         id_cliente_vip:   f.customfield_17036 || null,
         descricao_benef:  extrairTexto(f.customfield_14443),
