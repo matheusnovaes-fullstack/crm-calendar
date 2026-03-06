@@ -4,7 +4,7 @@ import { getIssues } from "../services/api";
 export function useIssues(projeto = "CP") {
   const [issues,    setIssues]    = useState([]);
   const [newPromos, setNewPromos] = useState([]);
-  const [tick,      setTick]      = useState(0); // força re-render a cada minuto
+  const [tick,      setTick]      = useState(0);
   const prevKeys = useRef(new Set());
 
   const carregar = async () => {
@@ -26,12 +26,10 @@ export function useIssues(projeto = "CP") {
   useEffect(() => {
     carregar();
     const fetchInterval = setInterval(carregar, 60 * 1000);
-    // Tick a cada 30s para atualizar status dinâmico sem nova requisição
     const tickInterval  = setInterval(() => setTick(t => t + 1), 30 * 1000);
     return () => { clearInterval(fetchInterval); clearInterval(tickInterval); };
   }, []); // eslint-disable-line
 
-  // Calcula status dinamicamente com base no horário atual
   const issuesComStatus = issues.map(i => {
     const agora = Date.now();
     const s = i.data_inicio    ? new Date(i.data_inicio).getTime()    : null;
@@ -39,11 +37,16 @@ export function useIssues(projeto = "CP") {
 
     let statusDinamico = "sem_data";
     if (s && e) {
-      if (agora < s)           statusDinamico = "agendada";
+      if (agora < s)                     statusDinamico = "agendada";
       else if (agora >= s && agora <= e) statusDinamico = "ativa";
-      else                     statusDinamico = "encerrada";
+      else                               statusDinamico = "encerrada";
     }
-    return { ...i, statusDinamico };
+
+    // 🔥 NOVOS CAMPOS
+    const segmento   = i.segmento   || i.customfield_17929?.value || i.customfield_17929?.[0]?.value || "—";
+    const tipoPremio = i.tipo_premio || i.customfield_17930?.value || i.customfield_17930?.[0]?.value || "—";
+
+    return { ...i, statusDinamico, segmento, tipoPremio };
   });
 
   return { issues: issuesComStatus, newPromos, recarregar: carregar, tick };
