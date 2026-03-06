@@ -129,7 +129,6 @@ function AppContent() {
     return emailSalvo;
   });
 
-  // sempre que logar, grava horário e expiração
   function handleLogin(emailNovo) {
     const agora = Date.now();
     localStorage.setItem("crm_login_at",   String(agora));
@@ -137,7 +136,6 @@ function AppContent() {
     setEmail(emailNovo);
   }
 
-  // renova expiração quando houver atividade do usuário
   useEffect(() => {
     if (!email) return;
 
@@ -154,27 +152,24 @@ function AppContent() {
     };
   }, [email]);
 
-  // timer para derrubar sessão mesmo se a aba ficar parada
   useEffect(() => {
     if (!email) return;
 
     const checarSessao = () => {
       const expiresAtStr = localStorage.getItem("crm_expires_at");
       if (!expiresAtStr) {
-        limparSessao();
-        setEmail("");
+        limparSessao(); setEmail("");
         localStorage.setItem("crm_session_expired", "1");
         return;
       }
       const expiresAt = Number(expiresAtStr);
       if (Number.isNaN(expiresAt) || Date.now() > expiresAt) {
-        limparSessao();
-        setEmail("");
+        limparSessao(); setEmail("");
         localStorage.setItem("crm_session_expired", "1");
       }
     };
 
-    const id = setInterval(checarSessao, 60 * 1000); // checa a cada 1min
+    const id = setInterval(checarSessao, 60 * 1000);
     return () => clearInterval(id);
   }, [email]);
 
@@ -196,12 +191,17 @@ function AppContent() {
     <TemaProvider>
       <DataProvider>
         <Routes>
-          <Route path="/"                 element={<CalendarPage onAbrirTutorial={abrir} />} />
-          <Route path="/day/:date"        element={<DayPage />} />
-          <Route path="/promo/:key"       element={<PromoPage />} />
-          <Route path="/campanhas"        element={<CampanhasPage />} />
-          <Route path="/campanhas/:marca" element={<CampanhasPage />} />
-          <Route path="/relatorios"       element={<RelatoriosPage />} />
+          <Route path="/"                              element={<CalendarPage onAbrirTutorial={abrir} />} />
+          <Route path="/day/:date"                     element={<DayPage />} />
+          <Route path="/campanhas"                     element={<CampanhasPage />} />
+          {/* 🔥 Rotas de detalhe vindas de CampanhasPage — devem vir ANTES de /:marca */}
+          <Route path="/campanhas/promo/:key"          element={<PromoPage />} />
+          <Route path="/campanhas/:marca/promo/:key"   element={<PromoPage />} />
+          {/* Rota de lista filtrada por marca */}
+          <Route path="/campanhas/:marca"              element={<CampanhasPage />} />
+          {/* Rota original vinda do calendário/DayPage */}
+          <Route path="/promo/:key"                    element={<PromoPage />} />
+          <Route path="/relatorios"                    element={<RelatoriosPage />} />
         </Routes>
         {visivel && <Tutorial onFechar={fechar} />}
       </DataProvider>
