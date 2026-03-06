@@ -1,15 +1,19 @@
 const axios = require("axios");
 require("dotenv").config();
 
-const auth      = { username: process.env.JIRA_EMAIL, password: process.env.JIRA_TOKEN };
-const baseURL   = `https://${process.env.JIRA_DOMAIN}`;
+const auth = {
+  username: process.env.JIRA_EMAIL,
+  password: process.env.JIRA_TOKEN
+};
+
+const baseURL = `https://${process.env.JIRA_DOMAIN}`;
 const WORKSPACE = "cec02f52-6697-4bef-9a4a-c83db0c65e6a";
 
 async function buscarNomeAsset(objectId) {
   try {
     const { data } = await axios.get(
       `${baseURL}/gateway/api/jsm/assets/workspace/${WORKSPACE}/v1/object/${objectId}`,
-      { auth, headers: { Accept: "application/json" } }
+      { auth }
     );
     return data?.label || null;
   } catch {
@@ -18,184 +22,167 @@ async function buscarNomeAsset(objectId) {
 }
 
 async function resolverCMDB(field) {
-  if (!Array.isArray(field) || field.length === 0) return null;
-  const nomes = await Promise.all(field.map(o => buscarNomeAsset(o.objectId)));
+  if (!Array.isArray(field)) return null;
+
+  const nomes = await Promise.all(
+    field.map(o => buscarNomeAsset(o.objectId))
+  );
+
   return nomes.filter(Boolean).join(", ") || null;
 }
 
-// === FUNÇÃO CORRIGIDA PARA RICHTEXT ===
-const extrairTextoRich = (doc) => {
-  if (!doc?.content || !Array.isArray(doc.content)) return null;
-  
+function extrairTextoRich(doc) {
+  if (!doc?.content) return null;
+
   function walk(nodes) {
     return nodes
-      .map(node => {
-        if (node.type === 'text') return node.text || '';
-        if (node.content && Array.isArray(node.content)) {
-          return walk(node.content);
-        }
-        return '';
+      .map(n => {
+        if (n.type === "text") return n.text;
+        if (n.content) return walk(n.content);
+        return "";
       })
-      .join('')
-      .trim();
+      .join("");
   }
-  
-  return walk(doc.content) || null;
-};
 
-const extrairValor = (campo) => {
+  return walk(doc.content).trim();
+}
+
+function extrairValor(campo) {
   if (!campo) return null;
 
-  // Rich text (Jira editor)
-  if (campo.type === 'doc') {
+  if (campo.type === "doc") {
     return extrairTextoRich(campo);
   }
 
-  // Texto simples
-  if (typeof campo === "string") {
-    return campo.trim();
-  }
+  if (typeof campo === "string") return campo;
 
-  // Número ou boolean
-  if (typeof campo === "number" || typeof campo === "boolean") {
-    return campo;
-  }
-
-  // Arrays (multi-select, labels, etc)
   if (Array.isArray(campo)) {
     return campo
-      .map((item) => {
-        if (typeof item === "string") return item;
-        if (item?.value) return item.value;
-        if (item?.name) return item.name;
-        if (item?.displayName) return item.displayName;
-        return null;
-      })
+      .map(i => i.value || i.name || i.displayName || null)
       .filter(Boolean)
       .join(", ");
   }
 
-  // Objetos padrão do Jira
   if (typeof campo === "object") {
-    if (campo.value) return campo.value;
-    if (campo.name) return campo.name;
-    if (campo.displayName) return campo.displayName;
-    if (campo.label) return campo.label;
-    if (campo.text) return campo.text;
+    return (
+      campo.value ||
+      campo.name ||
+      campo.displayName ||
+      campo.label ||
+      null
+    );
   }
 
-  return null;
-};
+  return campo;
+}
 
 async function buscarIssues(projeto) {
-  console.log(`Buscando issues do projeto ${projeto}...`);
-  try {
-    const { data } = await axios.get(`${baseURL}/rest/api/3/search/jql`, {
-      auth,
-      headers: { Accept: "application/json" },
-      timeout: 20000,
-      params: {
-        jql: `project=${projeto} ORDER BY created DESC`,
-        fields: [
-          "summary", "status", "assignee", "reporter",
-          "created", "priority", "components",
-          "customfield_10010", "customfield_12590",
-          "customfield_14439", "customfield_14440",
-          "customfield_12689",
-          "customfield_14438",
-          "customfield_11727",
-          "customfield_14441",            
-          "customfield_17930",
-          "customfield_17036",
-          "customfield_14447",
-          "customfield_14443",
-          "customfield_14585",
-          "customfield_14452",
-          "customfield_12854",
-          "customfield_11730",
-          "customfield_14810",
-          "customfield_10556",
-          "customfield_10194",
-          "customfield_14703",
-          "customfield_15094",
-          "customfield_12755",
-          // === NOVOS CAMPOS ===
-          "customfield_14442",  // Canal de Envio
-          "customfield_14444",  // Critério de Elegibilidade
-          "customfield_14586",  // Link da Campanha
-        ].join(","),
-        maxResults: 100,
-        startAt: 0,
-      },
-    });
 
-    console.log(`${data.issues.length} issues encontradas`);
+  const { data } = await axios.get(`${baseURL}/rest/api/3/search/jql`, {
+    auth,
+    params: {
+      jql: `project=${projeto} ORDER BY created DESC`,
+      maxResults: 100,
+      fields: [
+        "summary",
+        "status",
+        "assignee",
+        "reporter",
+        "created",
+        "priority",
+        "components",
+        "customfield_10010",
+        "customfield_12590",
+        "customfield_14439",
+        "customfield_14440",
+        "customfield_12689",
+        "customfield_14438",
+        "customfield_11727",
+        "customfield_14441",
+        "customfield_17930",
+        "customfield_17036",
+        "customfield_14447",
+        "customfield_14443",
+        "customfield_14585",
+        "customfield_14452",
+        "customfield_12854",
+        "customfield_11730",
+        "customfield_14810",
+        "customfield_10556",
+        "customfield_15094",
+        "customfield_12755",
 
-    const issues = await Promise.all((data.issues || []).map(async (issue) => {
-      const f     = issue.fields;
-      const sla   = f.customfield_12689 || {};
-      const ciclo = sla.ongoingCycle || (sla.completedCycles || [{}]).at(-1) || {};
+        // 🔥 NOVOS CAMPOS
+        "customfield_14442",
+        "customfield_14444",
+        "customfield_14586"
+      ].join(",")
+    }
+  });
 
-      const [casa_cmdb, casa2_cmdb] = await Promise.all([
-        resolverCMDB(f.customfield_12755),
-        resolverCMDB(f.customfield_15094),
-      ]);
+  const issues = await Promise.all(
+    data.issues.map(async issue => {
 
-      const casa_legado = Array.isArray(f.customfield_12755)
-        ? f.customfield_12755.map(c => c.value || c.name).filter(Boolean).join(", ")
-        : f.customfield_12755?.value || f.customfield_12755?.name || null;
+      const f = issue.fields;
 
-      const casa = casa_cmdb || casa_legado || casa2_cmdb || null;
+      const casa_cmdb = await resolverCMDB(f.customfield_12755);
 
       return {
-        chave:            issue.key,
-        resumo:           f.summary,
-        request_type:     f.customfield_10010?.requestType?.name || null,
-        catalogo:         f.customfield_12590?.value || null,
-        componente:       f.components?.[0]?.name || null,
-        status:           f.status?.name,
-        prioridade:       f.priority?.name || null,
-        relator:          f.reporter?.displayName || null,
-        responsavel:      f.assignee?.displayName || null,
-        responsavel_camp: f.customfield_14447?.displayName || null,
-        criado:           f.created,
-        data_inicio:      f.customfield_14439,
-        data_resolucao:   f.customfield_14440,
-        sla_tempo:        ciclo.elapsedTime?.friendly || null,
-        sla_breached:     ciclo.breached || false,
-        sla_restante:     ciclo.remainingTime?.friendly || null,
-        nome_promocao:    f.customfield_14438 || null,
-        jogo:             f.customfield_11727?.value || f.customfield_11727 || null,
-        // === CORRIGIDO ===
-        segmento:         extrairValor(f.customfield_14441),
-        tipoPremio:       extrairValor(f.customfield_17930),
-        // === NOVOS CAMPOS ===
-        canalEnvio:       extrairValor(f.customfield_14442),
-        criterioEleg:     extrairValor(f.customfield_14444),
-        linkCampanha:     extrairValor(f.customfield_14586),
-        // resto igual...
-        id_cliente_vip:   f.customfield_17036 || null,
-        descricao_benef:  extrairTextoRich(f.customfield_14443),
-        pontos_criticos:  extrairTextoRich(f.customfield_14585),
-        aplicacao:        f.customfield_14452?.value || null,
-        envolvidos:       Array.isArray(f.customfield_10556)
-                            ? f.customfield_10556.map(e => e.displayName).join(", ")
-                            : null,
-        valor_ingresso:   f.customfield_12854 || null,
-        area:             f.customfield_11730 || null,
-        relator_orig:     f.customfield_14810?.displayName || null,
-        casa,
-        casa2:            casa2_cmdb || null,
-        casa_debug:       { casa_cmdb, casa_legado, casa2_cmdb },
+
+        chave: issue.key,
+        resumo: f.summary,
+
+        request_type: f.customfield_10010?.requestType?.name || null,
+        catalogo: f.customfield_12590?.value || null,
+        componente: f.components?.[0]?.name || null,
+
+        status: f.status?.name,
+        prioridade: f.priority?.name || null,
+
+        relator: f.reporter?.displayName || null,
+        responsavel: f.assignee?.displayName || null,
+
+        criado: f.created,
+        data_inicio: f.customfield_14439,
+        data_resolucao: f.customfield_14440,
+
+        nome_promocao: f.customfield_14438,
+
+        jogo: extrairValor(f.customfield_11727),
+
+        // ✅ SEGMENTO CORRIGIDO
+        segmento: extrairValor(f.customfield_14441),
+
+        tipoPremio: extrairValor(f.customfield_17930),
+
+        // 🔥 NOVOS
+        canalEnvio: extrairValor(f.customfield_14442),
+        criterioEleg: extrairValor(f.customfield_14444),
+        linkCampanha: extrairValor(f.customfield_14586),
+
+        id_cliente_vip: f.customfield_17036,
+
+        descricao_benef: extrairTextoRich(f.customfield_14443),
+
+        aplicacao: extrairValor(f.customfield_14452),
+
+        valor_ingresso: f.customfield_12854,
+
+        area: f.customfield_11730,
+
+        relator_orig: f.customfield_14810?.displayName,
+
+        envolvidos: Array.isArray(f.customfield_10556)
+          ? f.customfield_10556.map(e => e.displayName).join(", ")
+          : null,
+
+        casa: casa_cmdb
       };
-    }));
 
-    return issues;
+    })
+  );
 
-  } catch (err) {
-    console.error("Erro:", err.message);
-    throw err;
-  }
+  return issues;
 }
 
 module.exports = { buscarIssues };
