@@ -94,18 +94,19 @@ export default function PromoPage() {
       ? `/campanhas/${marca}`
       : "/campanhas";
 
+  // ✅ CORRETO
   useEffect(() => {
     Promise.all([
       getIssues("CP"),
       getAnexos(key).catch(() => ({ data: [] }))
-    ]).then(([issuesRes, anexosRes]) => {
-      setIssue(
-        (issuesRes.data || issuesRes || []).find(i => i.chave == key)
-      );
-      setAnexos(anexosRes.data || []);
-    });
-  }, []);
-      .finally(() => setLoading(false));
+    ])
+      .then(([issuesRes, anexosRes]) => {
+        setIssue(
+          (issuesRes.data || issuesRes || []).find(i => i.chave == key)
+        );
+        setAnexos(anexosRes.data || []);
+      })
+      .finally(() => setLoading(false));  // ← dentro do useEffect
   }, [key]);
 
   if (loading) return <LoadingBar t={t} />;
