@@ -7,21 +7,25 @@ import { LayoutList, CheckCircle, XCircle, Clock, SlidersHorizontal, Download, X
 const barColors = ["#6366F1","#8B5CF6","#A78BFA","#818CF8","#4F46E5"];
 
 const CAMPOS_DISPONIVEIS = [
-  { key:"chave",          label:"Chave / ID"         },
-  { key:"resumo",         label:"Nome da campanha"   },
-  { key:"status",         label:"Status"             },
-  { key:"casa",           label:"Marca / Casa"       },
-  { key:"data_inicio",    label:"Data início"        },
-  { key:"data_resolucao", label:"Data encerramento"  },
-  { key:"responsavel",    label:"Responsável"        },
-  { key:"prioridade",     label:"Prioridade"         },
-  { key:"componente",     label:"Componente"         },
-  { key:"catalogo",       label:"Catálogo"           },
-  { key:"request_type",   label:"Request Type"       },
-  { key:"segmento",       label:"Segmento / Público" },
-  { key:"tipoPremio",     label:"Tipo de Prêmio"     },
-  { key:"valor_reais",    label:"Valor R$"           },
+  { key:"chave",          label:"Chave / ID"              },
+  { key:"resumo",         label:"Nome da campanha"        },
+  { key:"status",         label:"Status"                  },
+  { key:"casa",           label:"Marca / Casa"            },
+  { key:"data_inicio",    label:"Data início"             },
+  { key:"data_resolucao", label:"Data encerramento"       },
+  { key:"responsavel",    label:"Responsável"             },
+  { key:"prioridade",     label:"Prioridade"              },
+  { key:"componente",     label:"Componente"              },
+  { key:"catalogo",       label:"Catálogo"                },
+  { key:"request_type",   label:"Request Type"            },
+  { key:"segmento",       label:"Segmento / Público"      }, // ✅
+  { key:"tipoPremio",     label:"Tipo de Prêmio"          }, // ✅
+  { key:"canalEnvio",     label:"Canal de Envio"          }, // ✅ NOVO
+  { key:"criterioEleg",   label:"Critério Elegibilidade"  }, // ✅ NOVO
+  { key:"linkCampanha",   label:"Link da Campanha"        }, // ✅ NOVO
+  { key:"valor_ingresso", label:"Valor Ingresso"          },
 ];
+
 
 function getStatusLabel(i) {
   const s = i.statusDinamico;
