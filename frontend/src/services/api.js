@@ -1,5 +1,5 @@
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+  import.meta.env.VITE_API_URL || "https://crm-calendar-backend.onrender.com/api/issues/CP";
 
 export async function getIssues(projeto = "CP") {
   const response = await fetch(`${API_BASE}/issues/${projeto}`);
