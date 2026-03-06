@@ -12,24 +12,23 @@ const MARCAS_MAP = {
 };
 
 const ORDENACAO_OPTS = [
-  { key:"datainicio_desc",    label:"Início ↓ mais recente" },
-  { key:"datainicio_asc",     label:"Início ↑ mais antigo"  },
-  { key:"dataresolucao_desc", label:"Fim ↓ mais recente"    },
-  { key:"dataresolucao_asc",  label:"Fim ↑ mais antigo"     },
-  { key:"responsavel_asc",    label:"Responsável A→Z"       },
-  { key:"chave_desc",         label:"Chave ↓ mais novo"     },
+  { key:"data_inicio_desc",    label:"Início ↓ mais recente" },
+  { key:"data_inicio_asc",     label:"Início ↑ mais antigo"  },
+  { key:"data_resolucao_desc", label:"Fim ↓ mais recente"    },
+  { key:"data_resolucao_asc",  label:"Fim ↑ mais antigo"     },
+  { key:"responsavel_asc",     label:"Responsável A→Z"       },
+  { key:"chave_desc",          label:"Chave ↓ mais novo"     },
 ];
 
-// ✅ Corrigido para datainicio/dataresolucao (snake_case do backend)
 function ordenar(lista, key) {
   return [...lista].sort((a, b) => {
     switch (key) {
-      case "datainicio_desc":    return new Date(b.datainicio||0)    - new Date(a.datainicio||0);
-      case "datainicio_asc":     return new Date(a.datainicio||0)    - new Date(b.datainicio||0);
-      case "dataresolucao_desc": return new Date(b.dataresolucao||0) - new Date(a.dataresolucao||0);
-      case "dataresolucao_asc":  return new Date(a.dataresolucao||0) - new Date(b.dataresolucao||0);
-      case "responsavel_asc":    return (a.responsavel||"").localeCompare(b.responsavel||"");
-      case "chave_desc":         return b.chave.localeCompare(a.chave);
+      case "data_inicio_desc":    return new Date(b.data_inicio||0)    - new Date(a.data_inicio||0);
+      case "data_inicio_asc":     return new Date(a.data_inicio||0)    - new Date(b.data_inicio||0);
+      case "data_resolucao_desc": return new Date(b.data_resolucao||0) - new Date(a.data_resolucao||0);
+      case "data_resolucao_asc":  return new Date(a.data_resolucao||0) - new Date(b.data_resolucao||0);
+      case "responsavel_asc":     return (a.responsavel||"").localeCompare(b.responsavel||"");
+      case "chave_desc":          return b.chave.localeCompare(a.chave);
       default: return 0;
     }
   });
@@ -82,16 +81,16 @@ export default function CampanhasPage() {
   const [filtroResp,     setFiltroResp]     = useState("todos");
   const [filtroSegmento, setFiltroSegmento] = useState("todos");
   const [filtroPremio,   setFiltroPremio]   = useState("todos");
-  const [filtroCanal,    setFiltroCanal]    = useState("todos"); // ✅ NOVO
+  const [filtroCanal,    setFiltroCanal]    = useState("todos");
   const [filtroAberto,   setFiltroAberto]   = useState(false);
   const [dataInicio,     setDataInicio]     = useState("");
   const [dataFim,        setDataFim]        = useState("");
-  const [ordenacao,      setOrdenacao]      = useState("datainicio_desc");
+  const [ordenacao,      setOrdenacao]      = useState("data_inicio_desc");
 
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
   const segmentos    = ["todos", ...Array.from(new Set(issues.map(i => i.segmento).filter(v => v && v !== "—"))).sort()];
   const premios      = ["todos", ...Array.from(new Set(issues.map(i => i.tipoPremio).filter(v => v && v !== "—"))).sort()];
-  const canais       = ["todos", ...Array.from(new Set(issues.map(i => i.canalEnvio).filter(v => v && v !== "—"))).sort()]; // ✅ NOVO
+  const canais       = ["todos", ...Array.from(new Set(issues.map(i => i.canalEnvio).filter(v => v && v !== "—"))).sort()];
 
   const issuesPorMarca = marca
     ? issues.filter(i =>
@@ -107,7 +106,7 @@ export default function CampanhasPage() {
     setDataInicio(""); setDataFim("");
     setFiltro("todos"); setBusca("");
     setFiltroResp("todos"); setFiltroSegmento("todos");
-    setFiltroPremio("todos"); setFiltroCanal("todos"); // ✅ NOVO
+    setFiltroPremio("todos"); setFiltroCanal("todos");
   }
 
   const filtradas = ordenar(
@@ -120,21 +119,10 @@ export default function CampanhasPage() {
       const matchResp     = filtroResp     === "todos" || i.responsavel === filtroResp;
       const matchSegmento = filtroSegmento === "todos" || i.segmento    === filtroSegmento;
       const matchPremio   = filtroPremio   === "todos" || i.tipoPremio  === filtroPremio;
-      const matchCanal    = filtroCanal    === "todos" || i.canalEnvio  === filtroCanal; // ✅ NOVO
-
-      // ✅ Corrigido para datainicio/dataresolucao
+      const matchCanal    = filtroCanal    === "todos" || i.canalEnvio  === filtroCanal;
       let matchData = true;
-      if (dataInicio) {
-        const di = new Date(dataInicio);
-        const fe = i.dataresolucao ? new Date(i.dataresolucao) : null;
-        if (!fe || fe < di) matchData = false;
-      }
-      if (dataFim && matchData) {
-        const df = new Date(dataFim);
-        const fs = i.datainicio ? new Date(i.datainicio) : null;
-        if (!fs || fs > df) matchData = false;
-      }
-
+      if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
+      if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
       return matchFiltro && matchBusca && matchResp && matchSegmento && matchPremio && matchCanal && matchData;
     }),
     ordenacao
@@ -151,12 +139,7 @@ export default function CampanhasPage() {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:t.bg, fontFamily:"Inter,sans-serif", transition:"background 0.2s" }}>
-      <Sidebar
-        historico={historico}
-        totalNaoLidas={totalNaoLidas}
-        marcarLidas={marcarLidas}
-        limparHistorico={limparHistorico}
-      />
+      <Sidebar historico={historico} totalNaoLidas={totalNaoLidas} marcarLidas={marcarLidas} limparHistorico={limparHistorico} />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
@@ -175,7 +158,6 @@ export default function CampanhasPage() {
           </div>
 
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-            {/* Ordenação */}
             <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
               <ArrowUpDown size={13} style={{ position:"absolute", left:10, color:t.textDeep, pointerEvents:"none" }} />
               <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)} style={{
@@ -186,8 +168,6 @@ export default function CampanhasPage() {
                 {ORDENACAO_OPTS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
               </select>
             </div>
-
-            {/* Filtrar */}
             <button onClick={() => setFiltroAberto(v => !v)} style={{
               display:"flex", alignItems:"center", gap:6,
               background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : t.card,
@@ -213,14 +193,12 @@ export default function CampanhasPage() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
               <p style={{ fontSize:11, fontWeight:700, color:t.textMuted, letterSpacing:1 }}>FILTROS</p>
               {temFiltroAtivo && (
-                <button onClick={limparFiltros} style={{ background:"transparent", border:`1px solid ${t.border}`, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:t.textMuted, transition:"all 0.15s" }}
+                <button onClick={limparFiltros} style={{ background:"transparent", border:`1px solid ${t.border}`, borderRadius:6, padding:"4px 10px", cursor:"pointer", fontSize:10, fontWeight:600, color:t.textMuted }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.color=t.textMuted; }}
                 >Limpar tudo</button>
               )}
             </div>
-
-            {/* Datas */}
             <div style={{ display:"flex", gap:16, alignItems:"flex-end", marginBottom:20 }}>
               <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} t={t} />
               <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    t={t} />
@@ -229,55 +207,39 @@ export default function CampanhasPage() {
                 <p style={{ fontSize:20, fontWeight:800, color:"#6366F1" }}>{filtradas.length}</p>
               </div>
             </div>
-
-            {/* Responsável */}
             <div style={{ marginBottom:16 }}>
               <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8 }}>RESPONSÁVEL</label>
               <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                {responsaveis.map(r => (
-                  <ChipFiltro key={r} label={r === "todos" ? "Todos" : r} ativo={filtroResp === r} onClick={() => setFiltroResp(r)} cor="#6366F1" t={t} />
-                ))}
+                {responsaveis.map(r => <ChipFiltro key={r} label={r === "todos" ? "Todos" : r} ativo={filtroResp === r} onClick={() => setFiltroResp(r)} cor="#6366F1" t={t} />)}
               </div>
             </div>
-
-            {/* Segmento */}
             {segmentos.length > 1 && (
               <div style={{ marginBottom:16 }}>
                 <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Tag size={10} strokeWidth={2} /> SEGMENTO / PÚBLICO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {segmentos.map(s => (
-                    <ChipFiltro key={s} label={s === "todos" ? "Todos" : s} ativo={filtroSegmento === s} onClick={() => setFiltroSegmento(s)} cor="#A78BFA" t={t} />
-                  ))}
+                  {segmentos.map(s => <ChipFiltro key={s} label={s === "todos" ? "Todos" : s} ativo={filtroSegmento === s} onClick={() => setFiltroSegmento(s)} cor="#A78BFA" t={t} />)}
                 </div>
               </div>
             )}
-
-            {/* Tipo de Prêmio */}
             {premios.length > 1 && (
               <div style={{ marginBottom:16 }}>
                 <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Trophy size={10} strokeWidth={2} /> TIPO DE PRÊMIO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {premios.map(p => (
-                    <ChipFiltro key={p} label={p === "todos" ? "Todos" : p} ativo={filtroPremio === p} onClick={() => setFiltroPremio(p)} cor="#34D399" t={t} />
-                  ))}
+                  {premios.map(p => <ChipFiltro key={p} label={p === "todos" ? "Todos" : p} ativo={filtroPremio === p} onClick={() => setFiltroPremio(p)} cor="#34D399" t={t} />)}
                 </div>
               </div>
             )}
-
-            {/* ✅ NOVO — Canal de Envio */}
             {canais.length > 1 && (
               <div>
                 <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Send size={10} strokeWidth={2} /> CANAL DE ENVIO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                  {canais.map(c => (
-                    <ChipFiltro key={c} label={c === "todos" ? "Todos" : c} ativo={filtroCanal === c} onClick={() => setFiltroCanal(c)} cor="#F59E0B" t={t} />
-                  ))}
+                  {canais.map(c => <ChipFiltro key={c} label={c === "todos" ? "Todos" : c} ativo={filtroCanal === c} onClick={() => setFiltroCanal(c)} cor="#F59E0B" t={t} />)}
                 </div>
               </div>
             )}
@@ -335,54 +297,36 @@ export default function CampanhasPage() {
           >
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16 }}>
               <div style={{ flex:1 }}>
-
-                {/* Badges */}
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
-                  <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>
-                    {issue.chave}
-                  </span>
-
+                  <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>{issue.chave}</span>
                   {issue.casa && (
                     <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                       <Home size={10} strokeWidth={2} /> {issue.casa}
                     </span>
                   )}
-
                   {issue.casa2 && issue.casa2 !== issue.casa && (
                     <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.07)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.15)", display:"flex", alignItems:"center", gap:4 }}>
                       <Home size={10} strokeWidth={2} /> {issue.casa2}
                     </span>
                   )}
-
-                  {/* Segmento — clicável para filtrar */}
                   {issue.segmento && issue.segmento !== "—" && (
-                    <span
-                      onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
+                    <span onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
                       style={{ fontSize:11, color:"#A78BFA", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
-                      title="Filtrar por este segmento"
-                    >
+                      title="Filtrar por este segmento">
                       <Tag size={10} strokeWidth={2} /> {issue.segmento}
                     </span>
                   )}
-
-                  {/* Tipo Prêmio — clicável para filtrar */}
                   {issue.tipoPremio && issue.tipoPremio !== "—" && (
-                    <span
-                      onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
+                    <span onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
                       style={{ fontSize:11, color:"#34D399", background:"rgba(52,211,153,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
-                      title="Filtrar por este tipo de prêmio"
-                    >
+                      title="Filtrar por tipo de prêmio">
                       <Trophy size={10} strokeWidth={2} /> {issue.tipoPremio}
                     </span>
                   )}
-
-                  {/* ✅ NOVO — Canal de Envio — clicável para filtrar */}
                   {issue.canalEnvio && issue.canalEnvio !== "—" && (
-                    <span
-                      onClick={e => { e.stopPropagation(); setFiltroCanal(issue.canalEnvio); setFiltroAberto(true); }}
+                    <span onClick={e => { e.stopPropagation(); setFiltroCanal(issue.canalEnvio); setFiltroAberto(true); }}
                       style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
-                      title="Filtrar por este canal"
-                    >
+                      title="Filtrar por canal">
                       <Send size={10} strokeWidth={2} /> {issue.canalEnvio}
                     </span>
                   )}
@@ -390,54 +334,38 @@ export default function CampanhasPage() {
 
                 <h3 style={{ fontSize:14, fontWeight:700, color:t.text, marginBottom:7 }}>{issue.resumo}</h3>
 
-                {/* Datas e responsável — ✅ datainicio/dataresolucao correto */}
                 <div style={{ display:"flex", gap:16, fontSize:11, color:t.textDim, flexWrap:"wrap" }}>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <CalendarDays size={11} strokeWidth={2} />
-                    {issue.datainicio ? new Date(issue.datainicio).toLocaleDateString("pt-BR") : "—"}
-                  </span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <Flag size={11} strokeWidth={2} />
-                    {issue.dataresolucao ? new Date(issue.dataresolucao).toLocaleDateString("pt-BR") : "—"}
-                  </span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                    <User size={11} strokeWidth={2} /> {issue.responsavel || "—"}
-                  </span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><CalendarDays size={11} strokeWidth={2} />{issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><Flag size={11} strokeWidth={2} />{issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><User size={11} strokeWidth={2} />{issue.responsavel || "—"}</span>
                 </div>
 
-                {/* ✅ NOVO — Critério de Elegibilidade + Link Campanha */}
-                <div style={{ display:"flex", gap:12, marginTop:6, flexWrap:"wrap" }}>
-                  {issue.criterioEleg && issue.criterioEleg !== "—" && (
-                    <span style={{ fontSize:10, color:t.textDim, display:"flex", alignItems:"center", gap:4 }}>
-                      <Tag size={9} strokeWidth={2} style={{ opacity:0.6 }} />
-                      {issue.criterioEleg}
-                    </span>
-                  )}
-                  {issue.linkCampanha && (
-                    <a
-                      href={issue.linkCampanha}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      style={{ fontSize:10, color:"#6366F1", display:"flex", alignItems:"center", gap:4, textDecoration:"none" }}
-                    >
-                      <Link size={9} strokeWidth={2} /> Ver link
-                    </a>
-                  )}
-                </div>
-
+                {(issue.criterioEleg || issue.linkCampanha) && (
+                  <div style={{ display:"flex", gap:12, marginTop:6, flexWrap:"wrap" }}>
+                    {issue.criterioEleg && issue.criterioEleg !== "—" && (
+                      <span style={{ fontSize:10, color:t.textDim, display:"flex", alignItems:"center", gap:4 }}>
+                        <Tag size={9} strokeWidth={2} style={{ opacity:0.6 }} /> {issue.criterioEleg}
+                      </span>
+                    )}
+                    {issue.linkCampanha && (
+                      <a href={issue.linkCampanha} target="_blank" rel="noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{ fontSize:10, color:"#6366F1", display:"flex", alignItems:"center", gap:4, textDecoration:"none" }}>
+                        <Link size={9} strokeWidth={2} /> Ver link
+                      </a>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
-                <StatusBadge inicio={issue.datainicio} fim={issue.dataresolucao} />
+                <StatusBadge inicio={issue.data_inicio} fim={issue.data_resolucao} />
                 <span style={{ fontSize:10, color:t.textDeep }}>Ver detalhes →</span>
               </div>
             </div>
           </div>
         ))}
-
       </main>
-
       <style>{`@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
     </div>
   );
