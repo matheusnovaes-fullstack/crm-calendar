@@ -1,16 +1,16 @@
+// ✅ API_BASE aponta para a RAIZ da api, sem /issues/CP
 const API_BASE =
-  import.meta.env.VITE_API_URL || "https://crm-calendar-backend.onrender.com/api/issues/CP";
+  import.meta.env.VITE_API_URL || "https://crm-calendar-backend.onrender.com/api";
 
 export async function getIssues(projeto = "CP") {
-  const response = await fetch(`${API_BASE}/issues/${projeto}`);
+  const response = await fetch(`${API_BASE}/${projeto}`);
   if (!response.ok) throw new Error(`Erro ${response.status}`);
   return response.json();
 }
 
-// === NOVO NOME ===
 export async function getAttachments(key) {
   try {
-    const response = await fetch(`${API_BASE}/issues/${key}/attachments`);
+    const response = await fetch(`${API_BASE}/${key}/attachments`);
     if (!response.ok) throw new Error(`Erro ${response.status}`);
     return response.json();
   } catch {
@@ -18,22 +18,11 @@ export async function getAttachments(key) {
   }
 }
 
-// === NOVO NOME ===
 export async function proxyAnexo(url) {
-  return fetch(`${API_BASE}/issues/anexo-proxy?url=${encodeURIComponent(url)}`);
+  return fetch(`${API_BASE}/anexo-proxy?url=${encodeURIComponent(url)}`);
 }
 
-/* ===========================
-   ALIAS PARA NÃO QUEBRAR FRONT
-=========================== */
-
-export const getAnexos = getAttachments;
+export const getAnexos  = getAttachments;
 export const anexoProxy = proxyAnexo;
 
-export default {
-  getIssues,
-  getAttachments,
-  proxyAnexo,
-  getAnexos,
-  anexoProxy,
-};
+export default { getIssues, getAttachments, proxyAnexo, getAnexos, anexoProxy };
