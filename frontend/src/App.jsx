@@ -83,7 +83,8 @@ function TemaProvider({ children }) {
 // ── Provider de dados ──────────────────────────────────────
 function DataProvider({ children }) {
   const issuesValue       = useIssues("CP");
-  const notificacoesValue = useNotificacoes(issuesValue.issues);
+  // 🔥 passa newPromos para o hook de notificações
+  const notificacoesValue = useNotificacoes(issuesValue.issues, issuesValue.newPromos);
 
   return (
     <IssuesContext.Provider value={issuesValue}>
@@ -93,6 +94,7 @@ function DataProvider({ children }) {
     </IssuesContext.Provider>
   );
 }
+
 
 // ── Controle de sessão ─────────────────────────────────────
 const TEMPO_SESSAO_MS = 60 * 60 * 1000; // 1h
