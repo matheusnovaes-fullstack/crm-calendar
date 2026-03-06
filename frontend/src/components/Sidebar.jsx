@@ -15,16 +15,18 @@ const MARCAS = [
 function IconeTipo({ tipo }) {
   if (tipo === "inicio")    return <PlayCircle size={13} color="#34D399" strokeWidth={2} />;
   if (tipo === "encerrada") return <StopCircle size={13} color="#F87171" strokeWidth={2} />;
+  if (tipo === "nova")      return <Bell       size={13} color="#818CF8" strokeWidth={2} />;
   return                           <Clock      size={13} color="#FBBF24" strokeWidth={2} />;
 }
 
 function labelTipo(n) {
   if (n.tipo === "inicio")    return "Campanha iniciada";
   if (n.tipo === "encerrada") return "Campanha encerrada";
+  if (n.tipo === "nova")      return "Nova campanha inserida";
   return `Encerra em ${n.minutos} min`;
 }
 
-export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas = () => {} }) {
+export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas = () => {}, limparHistorico = () => {} }) {
   const navigate = useNavigate();
   const location = useLocation();
   const path     = location.pathname;
@@ -169,18 +171,9 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
           onMouseLeave={e => e.currentTarget.style.opacity="1"}
         >
           {avatarUsuario ? (
-            <img
-              src={avatarUsuario}
-              alt="avatar"
-              style={{ width:30, height:30, borderRadius:"50%", objectFit:"cover" }}
-            />
+            <img src={avatarUsuario} alt="avatar" style={{ width:30, height:30, borderRadius:"50%", objectFit:"cover" }} />
           ) : (
-            <div style={{
-              width:30, height:30,
-              background:"linear-gradient(135deg,#6366F1,#8B5CF6)",
-              borderRadius:"50%", display:"flex", alignItems:"center",
-              justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff"
-            }}>
+            <div style={{ width:30, height:30, background:"linear-gradient(135deg,#6366F1,#8B5CF6)", borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:12, fontWeight:700, color:"#fff" }}>
               {nomeUsuario.charAt(0).toUpperCase()}
             </div>
           )}
@@ -202,16 +195,39 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
             boxShadow:"4px 0 24px rgba(0,0,0,0.4)",
             animation:"slideInLeft 0.2s ease", transition:"background 0.2s"
           }}>
+
+            {/* Header do painel */}
             <div style={{ padding:"20px 20px 16px", borderBottom:`1px solid ${t.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
                 <p style={{ fontSize:13, fontWeight:700, color:t.text }}>Notificações</p>
                 <p style={{ fontSize:10, color:t.textDim, marginTop:2 }}>{historico.length} registro(s)</p>
               </div>
-              <button onClick={() => setSinoAberto(false)} style={{ background:"transparent", border:"none", cursor:"pointer", color:t.textMuted }}>
-                <X size={16} strokeWidth={2} />
-              </button>
+              <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                {/* 🔥 Botão limpar — analista decide */}
+                {historico.length > 0 && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm("Limpar todo o histórico de notificações?")) limparHistorico();
+                    }}
+                    style={{
+                      background:"transparent", border:`1px solid ${t.border}`,
+                      borderRadius:6, padding:"4px 8px", cursor:"pointer",
+                      fontSize:10, fontWeight:600, color:t.textMuted, transition:"all 0.15s"
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor="#EF4444"; e.currentTarget.style.color="#F87171"; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.color=t.textMuted; }}
+                    title="Limpar histórico"
+                  >
+                    Limpar
+                  </button>
+                )}
+                <button onClick={() => setSinoAberto(false)} style={{ background:"transparent", border:"none", cursor:"pointer", color:t.textMuted }}>
+                  <X size={16} strokeWidth={2} />
+                </button>
+              </div>
             </div>
 
+            {/* Lista */}
             <div style={{ flex:1, overflowY:"auto", padding:"12px 0" }}>
               {historico.length === 0 ? (
                 <div style={{ textAlign:"center", color:t.textDim, paddingTop:60 }}>
@@ -227,7 +243,11 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
                     <div style={{ marginTop:1 }}><IconeTipo tipo={n.tipo} /></div>
                     <div style={{ flex:1 }}>
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:3 }}>
-                        <span style={{ fontSize:10, fontWeight:700, color: n.tipo==="inicio" ? "#34D399" : n.tipo==="encerrada" ? "#F87171" : "#FBBF24" }}>
+                        <span style={{ fontSize:10, fontWeight:700, color:
+                          n.tipo === "nova"      ? "#818CF8" :
+                          n.tipo === "inicio"    ? "#34D399" :
+                          n.tipo === "encerrada" ? "#F87171" : "#FBBF24"
+                        }}>
                           {labelTipo(n)}
                         </span>
                         <span style={{ fontSize:9, color:t.textDim }}>
@@ -236,7 +256,7 @@ export default function Sidebar({ historico = [], totalNaoLidas = 0, marcarLidas
                       </div>
                       <p style={{ fontSize:11, color:t.textMuted, fontWeight:600, marginBottom:2 }}>{n.chave}</p>
                       <p style={{ fontSize:11, color:t.textDim, lineHeight:1.4 }}>
-                        {(n.resumo||"").slice(0,55)}{n.resumo?.length > 55 ? "..." : ""}
+                        {(n.resumo||"").slice(0,55)}{(n.resumo||"").length > 55 ? "..." : ""}
                       </p>
                     </div>
                   </div>
