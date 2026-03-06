@@ -97,7 +97,7 @@ export default function PromoPage() {
   useEffect(() => {
     Promise.all([getIssues("CP"), getAnexos(key).catch(() => ({ data:[] }))])
       .then(([issuesRes, anexosRes]) => {
-        setIssue((issuesRes.data?.data || []).find(i => i.chave === key) || null);
+        setIssue((issuesRes.data || issuesRes || []).find(i => i.chave
         setAnexos(anexosRes.data || []);
       })
       .finally(() => setLoading(false));
