@@ -32,35 +32,23 @@ const extrairTexto = (doc) => {
     .trim() || null;
 };
 
-// 🔥 extrairValor mais robusto para custom fields do Jira
 const extrairValor = (campo) => {
   if (!campo) return null;
-  
-  // Texto simples
   if (typeof campo === "string") return campo.trim();
-  
-  // Array de opções (multiselect)
   if (Array.isArray(campo)) {
     return campo
       .map(v => {
         if (typeof v === "string") return v;
-        return v?.value || v?.name || v?.label || null;
+        return v.value || v.name || v.label || null;
       })
       .filter(Boolean)
       .join(", ") || null;
   }
-  
-  // Objeto único (select)
-  return campo?.value || campo?.name || campo?.label || null;
+  return campo.value || campo.name || campo.label || null;
 };
 
-// No return do issue — mapeamento mais robusto:
-segmento: extrairValor(f.customfield_17929),
-tipoPremio: extrairValor(f.customfield_17930),
-
-
 async function buscarIssues(projeto) {
-  console.log(`🔍 Buscando issues do projeto ${projeto}...`);
+  console.log(`Buscando issues do projeto ${projeto}...`);
   try {
     const { data } = await axios.get(`${baseURL}/rest/api/3/search/jql`, {
       auth,
@@ -69,15 +57,15 @@ async function buscarIssues(projeto) {
       params: {
         jql: `project=${projeto} ORDER BY created DESC`,
         fields: [
-          "summary","status","assignee","reporter",
-          "created","priority","components",
-          "customfield_10010","customfield_12590",
-          "customfield_14439","customfield_14440",
+          "summary", "status", "assignee", "reporter",
+          "created", "priority", "components",
+          "customfield_10010", "customfield_12590",
+          "customfield_14439", "customfield_14440",
           "customfield_12689",
           "customfield_14438",
           "customfield_11727",
-          "customfield_17929", // Segmento / Público
-          "customfield_17930", // Tipo de Prêmio
+          "customfield_17929",
+          "customfield_17930",
           "customfield_17036",
           "customfield_14447",
           "customfield_14443",
@@ -97,9 +85,9 @@ async function buscarIssues(projeto) {
       },
     });
 
-    console.log(`✅ ${data?.issues?.length} issues encontradas`);
+    console.log(`${data.issues.length} issues encontradas`);
 
-    const issues = await Promise.all((data.issues || []).map(async issue => {
+    const issues = await Promise.all((data.issues || []).map(async (issue) => {
       const f     = issue.fields;
       const sla   = f.customfield_12689 || {};
       const ciclo = sla.ongoingCycle || (sla.completedCycles || [{}]).at(-1) || {};
@@ -134,10 +122,8 @@ async function buscarIssues(projeto) {
         sla_restante:     ciclo.remainingTime?.friendly || null,
         nome_promocao:    f.customfield_14438 || null,
         jogo:             f.customfield_11727?.value || f.customfield_11727 || null,
-        // 🔥 camelCase — alinhado com o frontend
         segmento:         extrairValor(f.customfield_17929),
         tipoPremio:       extrairValor(f.customfield_17930),
-        brand:            f.customfield_12755 || null,
         id_cliente_vip:   f.customfield_17036 || null,
         descricao_benef:  extrairTexto(f.customfield_14443),
         pontos_criticos:  extrairTexto(f.customfield_14585),
@@ -149,14 +135,15 @@ async function buscarIssues(projeto) {
         area:             f.customfield_11730 || null,
         relator_orig:     f.customfield_14810?.displayName || null,
         casa,
-        casa2:            casa2_cmdb || null, // 🔥 expõe casa2 separado para o frontend
+        casa2:            casa2_cmdb || null,
         casa_debug:       { casa_cmdb, casa_legado, casa2_cmdb },
       };
     }));
 
     return issues;
+
   } catch (err) {
-    console.error("❌ Erro:", err.message);
+    console.error("Erro:", err.message);
     throw err;
   }
 }
