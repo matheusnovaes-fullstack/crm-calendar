@@ -32,7 +32,6 @@ const extrairTexto = (doc) => {
     .trim() || null;
 };
 
-// Helper para campos select/multiselect/text do Jira
 const extrairValor = (campo) => {
   if (!campo) return null;
   if (typeof campo === "string") return campo;
@@ -55,22 +54,22 @@ async function buscarIssues(projeto) {
           "customfield_10010","customfield_12590",
           "customfield_14439","customfield_14440",
           "customfield_12689",
-          "customfield_14438", // Nome da Promoção
-          "customfield_11727", // Jogo
-          "customfield_17929", // Segmento / Público 🔥
-          "customfield_17930", // Tipo de Prêmio 🔥
-          "customfield_17036", // ID Cliente VIP
-          "customfield_14447", // Responsável campanha
-          "customfield_14443", // Descrição do benefício
-          "customfield_14585", // Pontos críticos
-          "customfield_14452", // Aplicação
-          "customfield_12854", // Valor ingresso
-          "customfield_11730", // Área
-          "customfield_14810", // Relator original
-          "customfield_10556", // Envolvidos
-          "customfield_10194", // Casa (CMDB)
-          "customfield_14703", // Casa (legado)
-          "customfield_15094", // Casa_2.1 (CMDB)
+          "customfield_14438",
+          "customfield_11727",
+          "customfield_17929", // Segmento / Público
+          "customfield_17930", // Tipo de Prêmio
+          "customfield_17036",
+          "customfield_14447",
+          "customfield_14443",
+          "customfield_14585",
+          "customfield_14452",
+          "customfield_12854",
+          "customfield_11730",
+          "customfield_14810",
+          "customfield_10556",
+          "customfield_10194",
+          "customfield_14703",
+          "customfield_15094",
           "customfield_12755",
         ].join(","),
         maxResults: 100,
@@ -115,8 +114,9 @@ async function buscarIssues(projeto) {
         sla_restante:     ciclo.remainingTime?.friendly || null,
         nome_promocao:    f.customfield_14438 || null,
         jogo:             f.customfield_11727?.value || f.customfield_11727 || null,
-        segmento:         extrairValor(f.customfield_17929),  // 🔥 CORRIGIDO (era 14441)
-        tipo_premio:      extrairValor(f.customfield_17930),  // 🔥 NOVO
+        // 🔥 camelCase — alinhado com o frontend
+        segmento:         extrairValor(f.customfield_17929),
+        tipoPremio:       extrairValor(f.customfield_17930),
         brand:            f.customfield_12755 || null,
         id_cliente_vip:   f.customfield_17036 || null,
         descricao_benef:  extrairTexto(f.customfield_14443),
@@ -129,7 +129,8 @@ async function buscarIssues(projeto) {
         area:             f.customfield_11730 || null,
         relator_orig:     f.customfield_14810?.displayName || null,
         casa,
-        casa_debug: { casa_cmdb, casa_legado, casa2_cmdb },
+        casa2:            casa2_cmdb || null, // 🔥 expõe casa2 separado para o frontend
+        casa_debug:       { casa_cmdb, casa_legado, casa2_cmdb },
       };
     }));
 
