@@ -95,11 +95,16 @@ export default function PromoPage() {
       : "/campanhas";
 
   useEffect(() => {
-    Promise.all([getIssues("CP"), getAnexos(key).catch(() => ({ data:[] }))])
-      .then(([issuesRes, anexosRes]) => {
-        setIssue((issuesRes.data || issuesRes || []).find(i => i.chave
-        setAnexos(anexosRes.data || []);
-      })
+    Promise.all([
+      getIssues("CP"),
+      getAnexos(key).catch(() => ({ data: [] }))
+    ]).then(([issuesRes, anexosRes]) => {
+      setIssue(
+        (issuesRes.data || issuesRes || []).find(i => i.chave == key)
+      );
+      setAnexos(anexosRes.data || []);
+    });
+  }, []);
       .finally(() => setLoading(false));
   }, [key]);
 
