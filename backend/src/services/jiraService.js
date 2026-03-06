@@ -23,17 +23,33 @@ async function resolverCMDB(field) {
   return nomes.filter(Boolean).join(", ") || null;
 }
 
-const extrairTexto = (doc) => {
-  if (!doc?.content) return null;
-  return doc.content
-    .flatMap(b => b.content || [])
-    .map(n => n.text || "")
-    .join("")
-    .trim() || null;
+// === FUNÇÃO CORRIGIDA PARA RICHTEXT ===
+const extrairTextoRich = (doc) => {
+  if (!doc?.content || !Array.isArray(doc.content)) return null;
+  
+  function walk(nodes) {
+    return nodes
+      .map(node => {
+        if (node.type === 'text') return node.text || '';
+        if (node.content && Array.isArray(node.content)) {
+          return walk(node.content);
+        }
+        return '';
+      })
+      .join('')
+      .trim();
+  }
+  
+  return walk(doc.content) || null;
 };
 
 const extrairValor = (campo) => {
   if (!campo) return null;
+
+  // Rich text (Jira editor)
+  if (campo.type === 'doc') {
+    return extrairTextoRich(campo);
+  }
 
   // Texto simples
   if (typeof campo === "string") {
@@ -103,6 +119,10 @@ async function buscarIssues(projeto) {
           "customfield_14703",
           "customfield_15094",
           "customfield_12755",
+          // === NOVOS CAMPOS ===
+          "customfield_14442",  // Canal de Envio
+          "customfield_14444",  // Critério de Elegibilidade
+          "customfield_14586",  // Link da Campanha
         ].join(","),
         maxResults: 100,
         startAt: 0,
@@ -146,11 +166,17 @@ async function buscarIssues(projeto) {
         sla_restante:     ciclo.remainingTime?.friendly || null,
         nome_promocao:    f.customfield_14438 || null,
         jogo:             f.customfield_11727?.value || f.customfield_11727 || null,
+        // === CORRIGIDO ===
         segmento:         extrairValor(f.customfield_14441),
-        tipoPremio:       extrairValor(f.customfield_17930), 
+        tipoPremio:       extrairValor(f.customfield_17930),
+        // === NOVOS CAMPOS ===
+        canalEnvio:       extrairValor(f.customfield_14442),
+        criterioEleg:     extrairValor(f.customfield_14444),
+        linkCampanha:     extrairValor(f.customfield_14586),
+        // resto igual...
         id_cliente_vip:   f.customfield_17036 || null,
-        descricao_benef:  extrairTexto(f.customfield_14443),
-        pontos_criticos:  extrairTexto(f.customfield_14585),
+        descricao_benef:  extrairTextoRich(f.customfield_14443),
+        pontos_criticos:  extrairTextoRich(f.customfield_14585),
         aplicacao:        f.customfield_14452?.value || null,
         envolvidos:       Array.isArray(f.customfield_10556)
                             ? f.customfield_10556.map(e => e.displayName).join(", ")
