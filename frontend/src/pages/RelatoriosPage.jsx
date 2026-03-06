@@ -1,27 +1,26 @@
-// RelatoriosPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import Sidebar from "../components/Sidebar";
-import { LayoutList, CheckCircle, XCircle, Clock, SlidersHorizontal, Download, X, FileText, FileJson } from "lucide-react";
+import { LayoutList, CheckCircle, XCircle, Clock, SlidersHorizontal, Download, X, FileText, FileJson, ChevronDown, ChevronUp, Tag, Trophy } from "lucide-react";
 
 const barColors = ["#6366F1","#8B5CF6","#A78BFA","#818CF8","#4F46E5"];
 
 const CAMPOS_DISPONIVEIS = [
-  { key:"chave",          label:"Chave / ID"        },
-  { key:"resumo",         label:"Nome da campanha"  },
-  { key:"status",         label:"Status"            },
-  { key:"casa",           label:"Marca / Casa"      },
-  { key:"data_inicio",    label:"Data início"       },
-  { key:"data_resolucao", label:"Data encerramento" },
-  { key:"responsavel",    label:"Responsável"       },
-  { key:"prioridade",     label:"Prioridade"        },
-  { key:"componente",     label:"Componente"        },
-  { key:"catalogo",       label:"Catálogo"          },
-  { key:"request_type",   label:"Request Type"      },
-  { key:"segmento",       label:"Segmento / Público" }, // 🔥 JÁ EXISTIA, mantido
-  { key:"tipoPremio",     label:"Tipo de Prêmio"    }, // 🔥 NOVO
-  { key:"valor_reais",    label:"Valor R$"          },
+  { key:"chave",          label:"Chave / ID"         },
+  { key:"resumo",         label:"Nome da campanha"   },
+  { key:"status",         label:"Status"             },
+  { key:"casa",           label:"Marca / Casa"       },
+  { key:"data_inicio",    label:"Data início"        },
+  { key:"data_resolucao", label:"Data encerramento"  },
+  { key:"responsavel",    label:"Responsável"        },
+  { key:"prioridade",     label:"Prioridade"         },
+  { key:"componente",     label:"Componente"         },
+  { key:"catalogo",       label:"Catálogo"           },
+  { key:"request_type",   label:"Request Type"       },
+  { key:"segmento",       label:"Segmento / Público" },
+  { key:"tipoPremio",     label:"Tipo de Prêmio"     },
+  { key:"valor_reais",    label:"Valor R$"           },
 ];
 
 function getStatusLabel(i) {
@@ -109,6 +108,73 @@ function FiltroData({ label, value, onChange, onClear, t }) {
   );
 }
 
+// 🔥 Componente de gráfico de barras reutilizável
+function GraficoBarras({ titulo, dados, maxVal, corInicial, corFinal, icone: Icone, t }) {
+  return (
+    <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+        <div style={{ width:3, height:14, background:`linear-gradient(180deg,${corInicial},${corFinal})`, borderRadius:2 }} />
+        <p style={{ fontSize:12, fontWeight:700, color:t.textMuted, display:"flex", alignItems:"center", gap:6 }}>
+          {Icone && <Icone size={12} strokeWidth={2} />} {titulo}
+        </p>
+      </div>
+      {dados.length === 0
+        ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
+        : dados.map(([label, count], idx) => (
+          <div key={label} style={{ marginBottom:10 }}>
+            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+              <span style={{ fontSize:11, color:t.textMuted, maxWidth:"75%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{label}</span>
+              <span style={{ fontSize:11, fontWeight:700, color:corInicial }}>{count}</span>
+            </div>
+            <div style={{ height:8, background:t.cardHover, borderRadius:4 }}>
+              <div style={{ height:8, borderRadius:4, width:((count/maxVal)*100)+"%", background:`linear-gradient(90deg,${corInicial},${corFinal})`, transition:"width 0.5s" }} />
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  );
+}
+
+// 🔥 Lista expansível
+function ListaExpansivel({ titulo, items, corBarra, corTexto, renderItem, t }) {
+  const [expandido, setExpandido] = useState(false);
+  const visiveis = expandido ? items : items.slice(0, 5);
+
+  return (
+    <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
+        <div style={{ width:3, height:14, background:corBarra, borderRadius:2 }} />
+        <p style={{ fontSize:12, fontWeight:700, color:t.textMuted }}>{titulo}</p>
+        <span style={{ marginLeft:"auto", fontSize:11, color:corTexto, fontWeight:600 }}>{items.length} total</span>
+      </div>
+      {items.length === 0
+        ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma campanha</p>
+        : <>
+            {visiveis.map(renderItem)}
+            {items.length > 5 && (
+              <button onClick={() => setExpandido(v => !v)} style={{
+                width:"100%", marginTop:10, padding:"8px", borderRadius:8, cursor:"pointer",
+                background:"transparent", border:`1px solid ${t.border}`,
+                color:t.textMuted, fontSize:11, fontWeight:600,
+                display:"flex", alignItems:"center", justifyContent:"center", gap:5,
+                transition:"all 0.15s"
+              }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor=corTexto; e.currentTarget.style.color=corTexto; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.color=t.textMuted; }}
+              >
+                {expandido
+                  ? <><ChevronUp size={13} strokeWidth={2} /> Ver menos</>
+                  : <><ChevronDown size={13} strokeWidth={2} /> Ver mais {items.length - 5} campanhas</>
+                }
+              </button>
+            )}
+          </>
+      }
+    </div>
+  );
+}
+
 export default function RelatoriosPage() {
   const navigate = useNavigate();
   const { issues }                                = useIssuesCtx();
@@ -133,15 +199,29 @@ export default function RelatoriosPage() {
   const encerradas = issuesFiltradas.filter(i => i.statusDinamico === "encerrada");
   const agendadas  = issuesFiltradas.filter(i => i.statusDinamico === "agendada");
 
+  // Por mês
   const porMes = {};
   issuesFiltradas.forEach(i => { if (!i.data_inicio) return; const d = new Date(i.data_inicio); const key = d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0"); porMes[key] = (porMes[key]||0)+1; });
   const mesesOrdenados = Object.entries(porMes).sort(([a],[b]) => a.localeCompare(b));
-  const maxMes         = Math.max(...mesesOrdenados.map(([,v]) => v), 1);
+  const maxMes = Math.max(...mesesOrdenados.map(([,v]) => v), 1);
 
+  // Por componente
   const porComp = {};
   issuesFiltradas.forEach(i => { const k = i.componente||"Sem componente"; porComp[k] = (porComp[k]||0)+1; });
   const compOrdenados = Object.entries(porComp).sort(([,a],[,b]) => b-a);
-  const maxComp       = Math.max(...compOrdenados.map(([,v]) => v), 1);
+  const maxComp = Math.max(...compOrdenados.map(([,v]) => v), 1);
+
+  // 🔥 Por segmento
+  const porSegmento = {};
+  issuesFiltradas.forEach(i => { const k = i.segmento && i.segmento !== "—" ? i.segmento : "Não informado"; porSegmento[k] = (porSegmento[k]||0)+1; });
+  const segOrdenados = Object.entries(porSegmento).sort(([,a],[,b]) => b-a);
+  const maxSeg = Math.max(...segOrdenados.map(([,v]) => v), 1);
+
+  // 🔥 Por tipo de prêmio
+  const porPremio = {};
+  issuesFiltradas.forEach(i => { const k = i.tipoPremio && i.tipoPremio !== "—" ? i.tipoPremio : "Não informado"; porPremio[k] = (porPremio[k]||0)+1; });
+  const premioOrdenados = Object.entries(porPremio).sort(([,a],[,b]) => b-a);
+  const maxPremio = Math.max(...premioOrdenados.map(([,v]) => v), 1);
 
   const formatMes = key => { const [y,m] = key.split("-"); return new Date(+y,+m-1).toLocaleDateString("pt-BR",{month:"short",year:"2-digit"}); };
 
@@ -151,6 +231,38 @@ export default function RelatoriosPage() {
     { label:"Encerradas",       value:encerradas.length,      color:"#F87171", Icon:XCircle     },
     { label:"Agendadas",        value:agendadas.length,       color:"#A78BFA", Icon:Clock       },
   ];
+
+  // Render de item de lista
+  const renderEncerrada = i => (
+    <div key={i.chave} onClick={() => navigate("/promo/"+i.chave)}
+      style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
+      onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+      onMouseLeave={e => e.currentTarget.style.opacity="1"}
+    >
+      <div>
+        <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+        <span style={{ fontSize:12, color:t.textSub }}>{(i.resumo||"").slice(0,40)}{(i.resumo||"").length>40?"...":""}</span>
+      </div>
+      <span style={{ fontSize:10, color:"#F87171", whiteSpace:"nowrap", marginLeft:10 }}>{i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
+    </div>
+  );
+
+  const renderAtiva = i => (
+    <div key={i.chave} onClick={() => navigate("/promo/"+i.chave)}
+      style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
+      onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
+      onMouseLeave={e => e.currentTarget.style.opacity="1"}
+    >
+      <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+        <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981", flexShrink:0 }} />
+        <div>
+          <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
+          <span style={{ fontSize:12, color:t.textSub }}>{(i.resumo||"").slice(0,35)}{(i.resumo||"").length>35?"...":""}</span>
+        </div>
+      </div>
+      <span style={{ fontSize:10, color:"#10B981", whiteSpace:"nowrap", marginLeft:10 }}>até {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
+    </div>
+  );
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:t.bg, fontFamily:"Inter,sans-serif", transition:"background 0.2s" }}>
@@ -215,93 +327,36 @@ export default function RelatoriosPage() {
           ))}
         </div>
 
+        {/* Linha 1 — Por mês + Por componente */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+          <GraficoBarras titulo="CAMPANHAS POR MÊS"       dados={mesesOrdenados.map(([k,v]) => [formatMes(k), v])} maxVal={maxMes}  corInicial="#6366F1" corFinal="#8B5CF6" t={t} />
+          <GraficoBarras titulo="CAMPANHAS POR COMPONENTE" dados={compOrdenados}   maxVal={maxComp} corInicial="#818CF8" corFinal="#6366F1" t={t} />
+        </div>
+
+        {/* 🔥 Linha 2 — Por segmento + Por tipo de prêmio */}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, marginBottom:16 }}>
+          <GraficoBarras titulo="POR SEGMENTO / PÚBLICO" dados={segOrdenados}    maxVal={maxSeg}    corInicial="#A78BFA" corFinal="#8B5CF6" icone={Tag}    t={t} />
+          <GraficoBarras titulo="POR TIPO DE PRÊMIO"     dados={premioOrdenados} maxVal={maxPremio} corInicial="#34D399" corFinal="#059669" icone={Trophy} t={t} />
+        </div>
+
+        {/* Linha 3 — Listas expansíveis */}
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
-          {/* Por mês */}
-          <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
-              <p style={{ fontSize:12, fontWeight:700, color:t.textMuted }}>CAMPANHAS POR MÊS</p>
-            </div>
-            {mesesOrdenados.length === 0 ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
-            : mesesOrdenados.map(([key, count], idx) => (
-              <div key={key} style={{ marginBottom:10 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                  <span style={{ fontSize:11, color:t.textMuted }}>{formatMes(key)}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:"#6366F1" }}>{count}</span>
-                </div>
-                <div style={{ height:8, background:t.cardHover, borderRadius:4 }}>
-                  <div style={{ height:8, borderRadius:4, width:((count/maxMes)*100)+"%", background:`linear-gradient(90deg,${barColors[idx%barColors.length]},${barColors[(idx+1)%barColors.length]})`, transition:"width 0.5s" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Por componente */}
-          <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#6366F1,#8B5CF6)", borderRadius:2 }} />
-              <p style={{ fontSize:12, fontWeight:700, color:t.textMuted }}>CAMPANHAS POR COMPONENTE</p>
-            </div>
-            {compOrdenados.length === 0 ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Sem dados</p>
-            : compOrdenados.map(([comp, count], idx) => (
-              <div key={comp} style={{ marginBottom:10 }}>
-                <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
-                  <span style={{ fontSize:11, color:t.textMuted }}>{comp}</span>
-                  <span style={{ fontSize:11, fontWeight:700, color:barColors[idx%barColors.length] }}>{count}</span>
-                </div>
-                <div style={{ height:8, background:t.cardHover, borderRadius:4 }}>
-                  <div style={{ height:8, borderRadius:4, width:((count/maxComp)*100)+"%", background:barColors[idx%barColors.length], transition:"width 0.5s" }} />
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Últimas encerradas */}
-          <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#F87171,#EF4444)", borderRadius:2 }} />
-              <p style={{ fontSize:12, fontWeight:700, color:t.textMuted }}>ÚLTIMAS ENCERRADAS</p>
-            </div>
-            {encerradas.length === 0 ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma encerrada</p>
-            : encerradas.slice(0,5).map(i => (
-              <div key={i.chave} onClick={() => navigate("/promo/"+i.chave)}
-                style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
-                onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
-                onMouseLeave={e => e.currentTarget.style.opacity="1"}
-              >
-                <div>
-                  <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
-                  <span style={{ fontSize:12, color:t.textSub }}>{(i.resumo||"").slice(0,40)}{(i.resumo||"").length>40?"...":""}</span>
-                </div>
-                <span style={{ fontSize:10, color:"#F87171", whiteSpace:"nowrap", marginLeft:10 }}>{i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Ativas agora */}
-          <div style={{ background:t.card, border:`1px solid ${t.border}`, borderRadius:12, padding:24 }}>
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:20 }}>
-              <div style={{ width:3, height:14, background:"linear-gradient(180deg,#10B981,#059669)", borderRadius:2 }} />
-              <p style={{ fontSize:12, fontWeight:700, color:t.textMuted }}>ATIVAS AGORA</p>
-            </div>
-            {ativas.length === 0 ? <p style={{ color:t.textDeep, fontSize:12, textAlign:"center", paddingTop:20 }}>Nenhuma campanha ativa</p>
-            : ativas.slice(0,5).map(i => (
-              <div key={i.chave} onClick={() => navigate("/promo/"+i.chave)}
-                style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"10px 0", borderBottom:`1px solid ${t.border}`, cursor:"pointer" }}
-                onMouseEnter={e => e.currentTarget.style.opacity="0.7"}
-                onMouseLeave={e => e.currentTarget.style.opacity="1"}
-              >
-                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <div style={{ width:6, height:6, borderRadius:"50%", background:"#10B981", flexShrink:0 }} />
-                  <div>
-                    <span style={{ fontSize:11, color:"#818CF8", fontWeight:700 }}>{i.chave} </span>
-                    <span style={{ fontSize:12, color:t.textSub }}>{(i.resumo||"").slice(0,35)}{(i.resumo||"").length>35?"...":""}</span>
-                  </div>
-                </div>
-                <span style={{ fontSize:10, color:"#10B981", whiteSpace:"nowrap", marginLeft:10 }}>até {i.data_resolucao ? new Date(i.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
-              </div>
-            ))}
-          </div>
+          <ListaExpansivel
+            titulo="ÚLTIMAS ENCERRADAS"
+            items={encerradas}
+            corBarra="linear-gradient(180deg,#F87171,#EF4444)"
+            corTexto="#F87171"
+            renderItem={renderEncerrada}
+            t={t}
+          />
+          <ListaExpansivel
+            titulo="ATIVAS AGORA"
+            items={ativas}
+            corBarra="linear-gradient(180deg,#10B981,#059669)"
+            corTexto="#10B981"
+            renderItem={renderAtiva}
+            t={t}
+          />
         </div>
       </main>
 
