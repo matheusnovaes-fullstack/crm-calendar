@@ -143,8 +143,8 @@ async function buscarIssues(projeto) {
         responsavel: f.assignee?.displayName || null,
 
         criado: f.created,
-        data_inicio: f.customfield_14439,
-        data_resolucao: f.customfield_14440,
+        datainicio: f.customfield_14439,
+        dataresolucao: f.customfield_14440,
 
         nome_promocao: f.customfield_14438,
 
