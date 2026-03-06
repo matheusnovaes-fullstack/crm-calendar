@@ -72,9 +72,9 @@ export default function CampanhasPage() {
   const navigate  = useNavigate();
   const { marca } = useParams();
 
-  const { issues }                                        = useIssuesCtx();
-  const { historico, totalNaoLidas, marcarLidas }         = useNotificacoesCtx();
-  const { t }                                             = useTemaCtx();
+  const { issues }                                                    = useIssuesCtx();
+  const { historico, totalNaoLidas, marcarLidas, limparHistorico }    = useNotificacoesCtx();
+  const { t }                                                         = useTemaCtx();
 
   const [busca,          setBusca]          = useState("");
   const [filtro,         setFiltro]         = useState("todos");
@@ -87,11 +87,15 @@ export default function CampanhasPage() {
   const [ordenacao,      setOrdenacao]      = useState("data_inicio_desc");
 
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
+  // 🔥 usa camelCase alinhado com o backend corrigido
   const segmentos    = ["todos", ...Array.from(new Set(issues.map(i => i.segmento).filter(v => v && v !== "—"))).sort()];
   const premios      = ["todos", ...Array.from(new Set(issues.map(i => i.tipoPremio).filter(v => v && v !== "—"))).sort()];
 
   const issuesPorMarca = marca
-    ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
+    ? issues.filter(i =>
+        (i.casa||"").toLowerCase().replace(/\s/g,"") === marca ||
+        (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca
+      )
     : issues;
 
   const temFiltroData  = dataInicio || dataFim;
@@ -105,14 +109,15 @@ export default function CampanhasPage() {
 
   const filtradas = ordenar(
     issuesPorMarca.filter(i => {
-      const matchFiltro    = filtro === "todos" || (i.statusDinamico||"sem_data") === filtro;
-      const matchBusca     = busca === "" ||
+      const matchFiltro   = filtro === "todos" || (i.statusDinamico||"sem_data") === filtro;
+      const matchBusca    = busca === "" ||
         i.chave.toLowerCase().includes(busca.toLowerCase()) ||
         (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
         (i.casa||"").toLowerCase().includes(busca.toLowerCase());
-      const matchResp      = filtroResp     === "todos" || i.responsavel === filtroResp;
-      const matchSegmento  = filtroSegmento === "todos" || i.segmento   === filtroSegmento;
-      const matchPremio    = filtroPremio   === "todos" || i.tipoPremio  === filtroPremio;
+      const matchResp     = filtroResp     === "todos" || i.responsavel === filtroResp;
+      // 🔥 camelCase correto
+      const matchSegmento = filtroSegmento === "todos" || i.segmento  === filtroSegmento;
+      const matchPremio   = filtroPremio   === "todos" || i.tipoPremio === filtroPremio;
       let matchData = true;
       if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
       if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
@@ -132,7 +137,12 @@ export default function CampanhasPage() {
 
   return (
     <div style={{ display:"flex", minHeight:"100vh", background:t.bg, fontFamily:"Inter,sans-serif", transition:"background 0.2s" }}>
-      <Sidebar historico={historico} totalNaoLidas={totalNaoLidas} marcarLidas={marcarLidas} />
+      <Sidebar
+        historico={historico}
+        totalNaoLidas={totalNaoLidas}
+        marcarLidas={marcarLidas}
+        limparHistorico={limparHistorico}
+      />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
 
@@ -151,7 +161,6 @@ export default function CampanhasPage() {
           </div>
 
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
-            {/* Ordenação */}
             <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
               <ArrowUpDown size={13} style={{ position:"absolute", left:10, color:t.textDeep, pointerEvents:"none" }} />
               <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)} style={{
@@ -218,7 +227,7 @@ export default function CampanhasPage() {
             {/* Segmento */}
             {segmentos.length > 1 && (
               <div style={{ marginBottom:16 }}>
-                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
+                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Tag size={10} strokeWidth={2} /> SEGMENTO / PÚBLICO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
@@ -232,7 +241,7 @@ export default function CampanhasPage() {
             {/* Tipo de Prêmio */}
             {premios.length > 1 && (
               <div>
-                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
+                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Trophy size={10} strokeWidth={2} /> TIPO DE PRÊMIO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
@@ -287,7 +296,8 @@ export default function CampanhasPage() {
         {filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:t.textDeep, paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
-          <div key={issue.chave} onClick={() => navigate(marca ? `/campanhas/${marca}/promo/${issue.chave}` : `/campanhas/promo/${issue.chave}`)}
+          <div key={issue.chave}
+            onClick={() => navigate(marca ? `/campanhas/${marca}/promo/${issue.chave}` : `/campanhas/promo/${issue.chave}`)}
             style={{ background:t.card, borderRadius:12, padding:"18px 20px", marginBottom:10, cursor:"pointer", border:`1px solid ${t.border}`, transition:"all 0.15s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.4)"; e.currentTarget.style.background=t.cardHover; e.currentTarget.style.transform="translateY(-1px)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.background=t.card; e.currentTarget.style.transform="none"; }}
@@ -295,33 +305,46 @@ export default function CampanhasPage() {
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16 }}>
               <div style={{ flex:1 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
-                  <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>{issue.chave}</span>
+
+                  <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>
+                    {issue.chave}
+                  </span>
+
                   {issue.casa && (
                     <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                       <Home size={10} strokeWidth={2} /> {issue.casa}
                     </span>
                   )}
-                  {/* 🔥 casa2 */}
+
                   {issue.casa2 && issue.casa2 !== issue.casa && (
                     <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.07)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.15)", display:"flex", alignItems:"center", gap:4 }}>
                       <Home size={10} strokeWidth={2} /> {issue.casa2}
                     </span>
                   )}
+
+                  {/* 🔥 segmento — camelCase correto */}
                   {issue.segmento && issue.segmento !== "—" && (
-                    <span onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
+                    <span
+                      onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
                       style={{ fontSize:11, color:"#A78BFA", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
-                      title="Filtrar por este segmento">
+                      title="Filtrar por este segmento"
+                    >
                       <Tag size={10} strokeWidth={2} /> {issue.segmento}
                     </span>
                   )}
+
+                  {/* 🔥 tipoPremio — camelCase correto */}
                   {issue.tipoPremio && issue.tipoPremio !== "—" && (
-                    <span onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
+                    <span
+                      onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
                       style={{ fontSize:11, color:"#34D399", background:"rgba(52,211,153,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
-                      title="Filtrar por este tipo de prêmio">
+                      title="Filtrar por este tipo de prêmio"
+                    >
                       <Trophy size={10} strokeWidth={2} /> {issue.tipoPremio}
                     </span>
                   )}
                 </div>
+
                 <h3 style={{ fontSize:14, fontWeight:700, color:t.text, marginBottom:7 }}>{issue.resumo}</h3>
                 <div style={{ display:"flex", gap:16, fontSize:11, color:t.textDim, flexWrap:"wrap" }}>
                   <span style={{ display:"flex", alignItems:"center", gap:4 }}><CalendarDays size={11} strokeWidth={2} />{issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}</span>
@@ -329,6 +352,7 @@ export default function CampanhasPage() {
                   <span style={{ display:"flex", alignItems:"center", gap:4 }}><User size={11} strokeWidth={2} />{issue.responsavel || "—"}</span>
                 </div>
               </div>
+
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
                 <StatusBadge inicio={issue.data_inicio} fim={issue.data_resolucao} />
                 <span style={{ fontSize:10, color:t.textDeep }}>Ver detalhes →</span>
@@ -337,6 +361,7 @@ export default function CampanhasPage() {
           </div>
         ))}
       </main>
+
       <style>{`@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
     </div>
   );
