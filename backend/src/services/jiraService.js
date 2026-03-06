@@ -23,6 +23,46 @@ async function resolverCMDB(field) {
   return nomes.filter(Boolean).join(", ") || null;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+
+async function getIssues(projeto = 'CP') {
+  try {
+    const response = await fetch(`${API_BASE}/${projeto}`);
+    if (!response.ok) throw new Error(`Erro ${response.status}: ${response.statusText}`);
+    return response.json();
+  } catch (error) {
+    console.error('Erro API:', error);
+    throw error;
+  }
+}
+
+async function getAttachments(key) {
+  try {
+    const response = await fetch(`${API_BASE}/${key}/attachments`);
+    if (!response.ok) throw new Error(`Erro ${response.status}`);
+    return response.json();
+  } catch (error) {
+    console.error('Erro anexos:', error);
+    return [];
+  }
+}
+
+async function proxyAnexo(url) {
+  try {
+    const response = await fetch(`${API_BASE}/anexo-proxy?url=${encodeURIComponent(url)}`);
+    return response;
+  } catch (error) {
+    console.error('Erro proxy:', error);
+    throw error;
+  }
+}
+
+// ✅ Exporta como NAMED (useIssues usa isso)
+export { getIssues, getAttachments, proxyAnexo };
+
+// ✅ Exporta como DEFAULT também
+export default { getIssues, getAttachments, proxyAnexo };
+
 // === FUNÇÃO CORRIGIDA PARA RICHTEXT ===
 const extrairTextoRich = (doc) => {
   if (!doc?.content || !Array.isArray(doc.content)) return null;
