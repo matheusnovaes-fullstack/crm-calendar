@@ -23,7 +23,7 @@ export default function DayPage() {
 
   useEffect(() => {
     getIssues("CP")
-      .then(({ data }) => setIssues(data?.data || []))
+      .then(res => setIssues(res.data || []))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
