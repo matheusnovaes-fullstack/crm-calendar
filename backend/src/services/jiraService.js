@@ -49,7 +49,8 @@ async function buscarIssues(projeto) {
           "customfield_12689",
           "customfield_14438", // Nome da Promoção
           "customfield_11727", // Jogo ✅
-          "customfield_14441", // Segmento / Público ✅
+          "customfield_17929", // Segmento / Público ✅
+          "customfield_17930", // Tipo de Prêmio
           "customfield_17036", // ID Cliente VIP
           "customfield_14447", // Responsável campanha
           "customfield_14443", // Descrição do benefício
