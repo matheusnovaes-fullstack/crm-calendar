@@ -1,10 +1,9 @@
-// CalendarPage.jsx
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import Sidebar from "../components/Sidebar";
 import NotificacaoPopup from "../components/NotificacaoPopup";
-import { RefreshCw, AlertTriangle, HelpCircle, Search, User } from "lucide-react";
+import { RefreshCw, AlertTriangle, HelpCircle, Search, User, Home, Tag, Trophy } from "lucide-react";
 
 function getDaysInMonth(y, m) { return new Date(y, m + 1, 0).getDate(); }
 function getFirstDay(y, m)    { return new Date(y, m, 1).getDay(); }
@@ -19,13 +18,26 @@ function Tooltip({ campanhas, t }) {
       position:"absolute", zIndex:999, bottom:"calc(100% + 8px)", left:"50%",
       transform:"translateX(-50%)",
       background:t.cardHover, border:`1px solid ${t.border}`,
-      borderRadius:8, padding:"8px 12px", minWidth:180, maxWidth:240,
+      borderRadius:8, padding:"8px 12px", minWidth:200, maxWidth:260,
       boxShadow:"0 8px 24px rgba(0,0,0,0.3)", pointerEvents:"none",
     }}>
       {campanhas.map(c => (
         <div key={c.chave} style={{ marginBottom:6, paddingBottom:6, borderBottom:`1px solid ${t.border}` }}>
           <p style={{ fontSize:10, fontWeight:700, color:"#818CF8", marginBottom:2 }}>{c.chave}</p>
-          <p style={{ fontSize:11, color:t.textSub, lineHeight:1.4 }}>{c.resumo || c.chave}</p>
+          <p style={{ fontSize:11, color:t.textSub, lineHeight:1.4, marginBottom:4 }}>{c.resumo || c.chave}</p>
+          {/* 🔥 Segmento e Tipo de Prêmio no tooltip */}
+          <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom:4 }}>
+            {c.segmento && c.segmento !== "—" && (
+              <span style={{ fontSize:9, fontWeight:700, padding:"1px 6px", borderRadius:3, background:"rgba(167,139,250,0.15)", color:"#A78BFA", border:"1px solid rgba(167,139,250,0.25)", display:"flex", alignItems:"center", gap:3 }}>
+                <Tag size={8} strokeWidth={2} /> {c.segmento}
+              </span>
+            )}
+            {c.tipoPremio && c.tipoPremio !== "—" && (
+              <span style={{ fontSize:9, fontWeight:700, padding:"1px 6px", borderRadius:3, background:"rgba(52,211,153,0.12)", color:"#34D399", border:"1px solid rgba(52,211,153,0.25)", display:"flex", alignItems:"center", gap:3 }}>
+                <Trophy size={8} strokeWidth={2} /> {c.tipoPremio}
+              </span>
+            )}
+          </div>
           <p style={{ fontSize:10, marginTop:2, fontWeight:600, textTransform:"uppercase",
             color: c.statusDinamico==="ativa" ? "#34D399" : c.statusDinamico==="encerrada" ? "#F87171" : "#A78BFA"
           }}>{c.statusDinamico}</p>
@@ -40,6 +52,13 @@ function Tooltip({ campanhas, t }) {
   );
 }
 
+const MARCAS = [
+  { key:"todos",        label:"Todas as marcas", color:"#6366F1" },
+  { key:"a7kbetbr",     label:"7K",              color:"#09ff00" },
+  { key:"cassinobetbr", label:"Cassino",         color:"#1059b9" },
+  { key:"verabetbr",    label:"Vera",            color:"#66ff00" },
+];
+
 export default function CalendarPage({ onAbrirTutorial }) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -49,10 +68,11 @@ export default function CalendarPage({ onAbrirTutorial }) {
   const { t }                                                = useTemaCtx();
 
   const hoje = new Date();
-  const [ano, setAno] = useState(() => parseInt(searchParams.get("ano")) || hoje.getFullYear());
-  const [mes, setMes] = useState(() => parseInt(searchParams.get("mes")) || hoje.getMonth());
+  const [ano,        setAno]        = useState(() => parseInt(searchParams.get("ano")) || hoje.getFullYear());
+  const [mes,        setMes]        = useState(() => parseInt(searchParams.get("mes")) || hoje.getMonth());
   const [busca,      setBusca]      = useState("");
   const [filtroResp, setFiltroResp] = useState("todos");
+  const [filtroMarca,setFiltroMarca]= useState("todos"); // 🔥 NOVO
   const [tooltipDia, setTooltipDia] = useState(null);
 
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
@@ -66,11 +86,14 @@ export default function CalendarPage({ onAbrirTutorial }) {
   }
 
   const issuesFiltradas = issues.filter(i => {
-    const matchResp  = filtroResp === "todos" || i.responsavel === filtroResp;
+    const matchResp  = filtroResp  === "todos" || i.responsavel === filtroResp;
+    const matchMarca = filtroMarca === "todos" ||
+      (i.casa||"").toLowerCase().replace(/\s/g,"") === filtroMarca ||
+      (i.casa2||"").toLowerCase().replace(/\s/g,"") === filtroMarca;
     const matchBusca = busca === "" ||
       i.chave?.toLowerCase().includes(busca.toLowerCase()) ||
       (i.resumo||"").toLowerCase().includes(busca.toLowerCase());
-    return matchResp && matchBusca;
+    return matchResp && matchMarca && matchBusca;
   });
 
   function campanhasNoDia(dia) {
@@ -96,8 +119,6 @@ export default function CalendarPage({ onAbrirTutorial }) {
       <Sidebar historico={historico} totalNaoLidas={totalNaoLidas} marcarLidas={marcarLidas} />
 
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
-
-        {/* Header */}
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:20 }}>
           <div>
             <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
@@ -121,31 +142,37 @@ export default function CalendarPage({ onAbrirTutorial }) {
               ))}
             </div>
 
-            <button onClick={onAbrirTutorial} style={{
-              display:"flex", alignItems:"center", gap:6,
-              background:t.card, border:`1px solid ${t.border}`,
-              borderRadius:9, padding:"9px 14px", cursor:"pointer",
-              fontSize:12, fontWeight:600, color:t.textMuted, marginLeft:16, transition:"all 0.15s"
-            }}
+            <button onClick={onAbrirTutorial} style={{ display:"flex", alignItems:"center", gap:6, background:t.card, border:`1px solid ${t.border}`, borderRadius:9, padding:"9px 14px", cursor:"pointer", fontSize:12, fontWeight:600, color:t.textMuted, marginLeft:16, transition:"all 0.15s" }}
               onMouseEnter={e => { e.currentTarget.style.color=t.textSub; e.currentTarget.style.borderColor=t.borderHover; }}
               onMouseLeave={e => { e.currentTarget.style.color=t.textMuted; e.currentTarget.style.borderColor=t.border; }}
             >
               <HelpCircle size={13} strokeWidth={2} /> Tutorial
             </button>
 
-            <button onClick={recarregar} style={{
-              display:"flex", alignItems:"center", gap:7,
-              background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff",
-              border:"none", borderRadius:9, padding:"9px 18px",
-              cursor:"pointer", fontSize:12, fontWeight:600,
-              boxShadow:"0 4px 14px rgba(99,102,241,0.4)", transition:"opacity 0.15s"
-            }}
+            <button onClick={recarregar} style={{ display:"flex", alignItems:"center", gap:7, background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff", border:"none", borderRadius:9, padding:"9px 18px", cursor:"pointer", fontSize:12, fontWeight:600, boxShadow:"0 4px 14px rgba(99,102,241,0.4)", transition:"opacity 0.15s" }}
               onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
               onMouseLeave={e => e.currentTarget.style.opacity="1"}
             >
               <RefreshCw size={13} strokeWidth={2.5} /> SINCRONIZAR
             </button>
           </div>
+        </div>
+
+        {/* 🔥 Filtro por Marca */}
+        <div style={{ display:"flex", gap:8, marginBottom:14, flexWrap:"wrap" }}>
+          {MARCAS.map(m => (
+            <button key={m.key} onClick={() => setFiltroMarca(m.key)} style={{
+              display:"flex", alignItems:"center", gap:6,
+              padding:"6px 14px", borderRadius:8, fontSize:11, fontWeight:700,
+              cursor:"pointer", transition:"all 0.15s",
+              background: filtroMarca === m.key ? `${m.color}20` : "transparent",
+              border: `1px solid ${filtroMarca === m.key ? m.color+"66" : t.border}`,
+              color: filtroMarca === m.key ? m.color : t.textMuted,
+            }}>
+              {m.key !== "todos" && <span style={{ width:7, height:7, borderRadius:"50%", background:m.color, display:"inline-block" }} />}
+              {m.label}
+            </button>
+          ))}
         </div>
 
         {/* Busca + filtro responsável */}
