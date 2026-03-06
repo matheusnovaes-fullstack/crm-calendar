@@ -96,18 +96,18 @@ export default function PromoPage() {
 
   // ✅ CORRETO
   useEffect(() => {
-  Promise.all([
-    getIssues("CP"),
-    getAnexos(key).catch(() => [])
-  ])
-    .then(([issuesRes, anexosRes]) => {
-      setIssue(
-        (issuesRes.data || []).find(i => i.chave == key)
-      );
-      setAnexos(Array.isArray(anexosRes) ? anexosRes : []);
-    })
-    .finally(() => setLoading(false));
-}, [key]);
+    Promise.all([
+      getIssues("CP"),
+      getAnexos(key).catch(() => [])
+    ])
+      .then(([issuesRes, anexosRes]) => {
+        setIssue(
+          (issuesRes.data || []).find(i => i.chave == key)
+        );
+        setAnexos(Array.isArray(anexosRes) ? anexosRes : []);
+      })
+      .finally(() => setLoading(false));
+  }, [key]);
 
   if (loading) return <LoadingBar t={t} />;
 
