@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
+const API_BASE =
+  import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
 export async function getIssues(projeto = "CP") {
   const response = await fetch(`${API_BASE}/issues/${projeto}`);
@@ -6,6 +7,7 @@ export async function getIssues(projeto = "CP") {
   return response.json();
 }
 
+// === NOVO NOME ===
 export async function getAttachments(key) {
   try {
     const response = await fetch(`${API_BASE}/issues/${key}/attachments`);
@@ -16,8 +18,22 @@ export async function getAttachments(key) {
   }
 }
 
+// === NOVO NOME ===
 export async function proxyAnexo(url) {
   return fetch(`${API_BASE}/issues/anexo-proxy?url=${encodeURIComponent(url)}`);
 }
 
-export default { getIssues, getAttachments, proxyAnexo };
+/* ===========================
+   ALIAS PARA NÃO QUEBRAR FRONT
+=========================== */
+
+export const getAnexos = getAttachments;
+export const anexoProxy = proxyAnexo;
+
+export default {
+  getIssues,
+  getAttachments,
+  proxyAnexo,
+  getAnexos,
+  anexoProxy,
+};
