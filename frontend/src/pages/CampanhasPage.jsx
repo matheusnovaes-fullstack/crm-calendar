@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
-import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X, Tag, Trophy, ArrowUpDown } from "lucide-react";
+import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X, Tag, Trophy, ArrowUpDown, Send, Link } from "lucide-react";
 
 const MARCAS_MAP = {
   "a7kbetbr":     { label:"7K",      color:"#09ff00" },
@@ -12,23 +12,24 @@ const MARCAS_MAP = {
 };
 
 const ORDENACAO_OPTS = [
-  { key:"data_inicio_desc",    label:"Início ↓ mais recente" },
-  { key:"data_inicio_asc",     label:"Início ↑ mais antigo"  },
-  { key:"data_resolucao_desc", label:"Fim ↓ mais recente"    },
-  { key:"data_resolucao_asc",  label:"Fim ↑ mais antigo"     },
-  { key:"responsavel_asc",     label:"Responsável A→Z"       },
-  { key:"chave_desc",          label:"Chave ↓ mais novo"     },
+  { key:"datainicio_desc",    label:"Início ↓ mais recente" },
+  { key:"datainicio_asc",     label:"Início ↑ mais antigo"  },
+  { key:"dataresolucao_desc", label:"Fim ↓ mais recente"    },
+  { key:"dataresolucao_asc",  label:"Fim ↑ mais antigo"     },
+  { key:"responsavel_asc",    label:"Responsável A→Z"       },
+  { key:"chave_desc",         label:"Chave ↓ mais novo"     },
 ];
 
+// ✅ Corrigido para datainicio/dataresolucao (snake_case do backend)
 function ordenar(lista, key) {
   return [...lista].sort((a, b) => {
     switch (key) {
-      case "data_inicio_desc":    return new Date(b.data_inicio||0)    - new Date(a.data_inicio||0);
-      case "data_inicio_asc":     return new Date(a.data_inicio||0)    - new Date(b.data_inicio||0);
-      case "data_resolucao_desc": return new Date(b.data_resolucao||0) - new Date(a.data_resolucao||0);
-      case "data_resolucao_asc":  return new Date(a.data_resolucao||0) - new Date(b.data_resolucao||0);
-      case "responsavel_asc":     return (a.responsavel||"").localeCompare(b.responsavel||"");
-      case "chave_desc":          return b.chave.localeCompare(a.chave);
+      case "datainicio_desc":    return new Date(b.datainicio||0)    - new Date(a.datainicio||0);
+      case "datainicio_asc":     return new Date(a.datainicio||0)    - new Date(b.datainicio||0);
+      case "dataresolucao_desc": return new Date(b.dataresolucao||0) - new Date(a.dataresolucao||0);
+      case "dataresolucao_asc":  return new Date(a.dataresolucao||0) - new Date(b.dataresolucao||0);
+      case "responsavel_asc":    return (a.responsavel||"").localeCompare(b.responsavel||"");
+      case "chave_desc":         return b.chave.localeCompare(a.chave);
       default: return 0;
     }
   });
@@ -72,24 +73,25 @@ export default function CampanhasPage() {
   const navigate  = useNavigate();
   const { marca } = useParams();
 
-  const { issues }                                                    = useIssuesCtx();
-  const { historico, totalNaoLidas, marcarLidas, limparHistorico }    = useNotificacoesCtx();
-  const { t }                                                         = useTemaCtx();
+  const { issues }                                                 = useIssuesCtx();
+  const { historico, totalNaoLidas, marcarLidas, limparHistorico } = useNotificacoesCtx();
+  const { t }                                                      = useTemaCtx();
 
   const [busca,          setBusca]          = useState("");
   const [filtro,         setFiltro]         = useState("todos");
   const [filtroResp,     setFiltroResp]     = useState("todos");
   const [filtroSegmento, setFiltroSegmento] = useState("todos");
   const [filtroPremio,   setFiltroPremio]   = useState("todos");
+  const [filtroCanal,    setFiltroCanal]    = useState("todos"); // ✅ NOVO
   const [filtroAberto,   setFiltroAberto]   = useState(false);
   const [dataInicio,     setDataInicio]     = useState("");
   const [dataFim,        setDataFim]        = useState("");
-  const [ordenacao,      setOrdenacao]      = useState("data_inicio_desc");
+  const [ordenacao,      setOrdenacao]      = useState("datainicio_desc");
 
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
-  // 🔥 usa camelCase alinhado com o backend corrigido
   const segmentos    = ["todos", ...Array.from(new Set(issues.map(i => i.segmento).filter(v => v && v !== "—"))).sort()];
   const premios      = ["todos", ...Array.from(new Set(issues.map(i => i.tipoPremio).filter(v => v && v !== "—"))).sort()];
+  const canais       = ["todos", ...Array.from(new Set(issues.map(i => i.canalEnvio).filter(v => v && v !== "—"))).sort()]; // ✅ NOVO
 
   const issuesPorMarca = marca
     ? issues.filter(i =>
@@ -99,12 +101,13 @@ export default function CampanhasPage() {
     : issues;
 
   const temFiltroData  = dataInicio || dataFim;
-  const temFiltroAtivo = temFiltroData || filtroResp !== "todos" || filtroSegmento !== "todos" || filtroPremio !== "todos";
+  const temFiltroAtivo = temFiltroData || filtroResp !== "todos" || filtroSegmento !== "todos" || filtroPremio !== "todos" || filtroCanal !== "todos";
 
   function limparFiltros() {
     setDataInicio(""); setDataFim("");
     setFiltro("todos"); setBusca("");
-    setFiltroResp("todos"); setFiltroSegmento("todos"); setFiltroPremio("todos");
+    setFiltroResp("todos"); setFiltroSegmento("todos");
+    setFiltroPremio("todos"); setFiltroCanal("todos"); // ✅ NOVO
   }
 
   const filtradas = ordenar(
@@ -115,13 +118,24 @@ export default function CampanhasPage() {
         (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
         (i.casa||"").toLowerCase().includes(busca.toLowerCase());
       const matchResp     = filtroResp     === "todos" || i.responsavel === filtroResp;
-      // 🔥 camelCase correto
-      const matchSegmento = filtroSegmento === "todos" || i.segmento  === filtroSegmento;
-      const matchPremio   = filtroPremio   === "todos" || i.tipoPremio === filtroPremio;
+      const matchSegmento = filtroSegmento === "todos" || i.segmento    === filtroSegmento;
+      const matchPremio   = filtroPremio   === "todos" || i.tipoPremio  === filtroPremio;
+      const matchCanal    = filtroCanal    === "todos" || i.canalEnvio  === filtroCanal; // ✅ NOVO
+
+      // ✅ Corrigido para datainicio/dataresolucao
       let matchData = true;
-      if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
-      if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
-      return matchFiltro && matchBusca && matchResp && matchSegmento && matchPremio && matchData;
+      if (dataInicio) {
+        const di = new Date(dataInicio);
+        const fe = i.dataresolucao ? new Date(i.dataresolucao) : null;
+        if (!fe || fe < di) matchData = false;
+      }
+      if (dataFim && matchData) {
+        const df = new Date(dataFim);
+        const fs = i.datainicio ? new Date(i.datainicio) : null;
+        if (!fs || fs > df) matchData = false;
+      }
+
+      return matchFiltro && matchBusca && matchResp && matchSegmento && matchPremio && matchCanal && matchData;
     }),
     ordenacao
   );
@@ -161,6 +175,7 @@ export default function CampanhasPage() {
           </div>
 
           <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+            {/* Ordenação */}
             <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
               <ArrowUpDown size={13} style={{ position:"absolute", left:10, color:t.textDeep, pointerEvents:"none" }} />
               <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)} style={{
@@ -172,6 +187,7 @@ export default function CampanhasPage() {
               </select>
             </div>
 
+            {/* Filtrar */}
             <button onClick={() => setFiltroAberto(v => !v)} style={{
               display:"flex", alignItems:"center", gap:6,
               background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : t.card,
@@ -240,13 +256,27 @@ export default function CampanhasPage() {
 
             {/* Tipo de Prêmio */}
             {premios.length > 1 && (
-              <div>
+              <div style={{ marginBottom:16 }}>
                 <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
                   <Trophy size={10} strokeWidth={2} /> TIPO DE PRÊMIO
                 </label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                   {premios.map(p => (
                     <ChipFiltro key={p} label={p === "todos" ? "Todos" : p} ativo={filtroPremio === p} onClick={() => setFiltroPremio(p)} cor="#34D399" t={t} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ✅ NOVO — Canal de Envio */}
+            {canais.length > 1 && (
+              <div>
+                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
+                  <Send size={10} strokeWidth={2} /> CANAL DE ENVIO
+                </label>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {canais.map(c => (
+                    <ChipFiltro key={c} label={c === "todos" ? "Todos" : c} ativo={filtroCanal === c} onClick={() => setFiltroCanal(c)} cor="#F59E0B" t={t} />
                   ))}
                 </div>
               </div>
@@ -293,6 +323,7 @@ export default function CampanhasPage() {
           </div>
         )}
 
+        {/* Lista */}
         {filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:t.textDeep, paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
@@ -304,8 +335,9 @@ export default function CampanhasPage() {
           >
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:16 }}>
               <div style={{ flex:1 }}>
-                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
 
+                {/* Badges */}
+                <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:7, flexWrap:"wrap" }}>
                   <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:11, fontWeight:700, padding:"2px 8px", borderRadius:5, border:"1px solid rgba(99,102,241,0.2)" }}>
                     {issue.chave}
                   </span>
@@ -322,7 +354,7 @@ export default function CampanhasPage() {
                     </span>
                   )}
 
-                  {/* 🔥 segmento — camelCase correto */}
+                  {/* Segmento — clicável para filtrar */}
                   {issue.segmento && issue.segmento !== "—" && (
                     <span
                       onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
@@ -333,7 +365,7 @@ export default function CampanhasPage() {
                     </span>
                   )}
 
-                  {/* 🔥 tipoPremio — camelCase correto */}
+                  {/* Tipo Prêmio — clicável para filtrar */}
                   {issue.tipoPremio && issue.tipoPremio !== "—" && (
                     <span
                       onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
@@ -343,23 +375,67 @@ export default function CampanhasPage() {
                       <Trophy size={10} strokeWidth={2} /> {issue.tipoPremio}
                     </span>
                   )}
+
+                  {/* ✅ NOVO — Canal de Envio — clicável para filtrar */}
+                  {issue.canalEnvio && issue.canalEnvio !== "—" && (
+                    <span
+                      onClick={e => { e.stopPropagation(); setFiltroCanal(issue.canalEnvio); setFiltroAberto(true); }}
+                      style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
+                      title="Filtrar por este canal"
+                    >
+                      <Send size={10} strokeWidth={2} /> {issue.canalEnvio}
+                    </span>
+                  )}
                 </div>
 
                 <h3 style={{ fontSize:14, fontWeight:700, color:t.text, marginBottom:7 }}>{issue.resumo}</h3>
+
+                {/* Datas e responsável — ✅ datainicio/dataresolucao correto */}
                 <div style={{ display:"flex", gap:16, fontSize:11, color:t.textDim, flexWrap:"wrap" }}>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><CalendarDays size={11} strokeWidth={2} />{issue.data_inicio ? new Date(issue.data_inicio).toLocaleDateString("pt-BR") : "—"}</span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><Flag size={11} strokeWidth={2} />{issue.data_resolucao ? new Date(issue.data_resolucao).toLocaleDateString("pt-BR") : "—"}</span>
-                  <span style={{ display:"flex", alignItems:"center", gap:4 }}><User size={11} strokeWidth={2} />{issue.responsavel || "—"}</span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <CalendarDays size={11} strokeWidth={2} />
+                    {issue.datainicio ? new Date(issue.datainicio).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <Flag size={11} strokeWidth={2} />
+                    {issue.dataresolucao ? new Date(issue.dataresolucao).toLocaleDateString("pt-BR") : "—"}
+                  </span>
+                  <span style={{ display:"flex", alignItems:"center", gap:4 }}>
+                    <User size={11} strokeWidth={2} /> {issue.responsavel || "—"}
+                  </span>
                 </div>
+
+                {/* ✅ NOVO — Critério de Elegibilidade + Link Campanha */}
+                <div style={{ display:"flex", gap:12, marginTop:6, flexWrap:"wrap" }}>
+                  {issue.criterioEleg && issue.criterioEleg !== "—" && (
+                    <span style={{ fontSize:10, color:t.textDim, display:"flex", alignItems:"center", gap:4 }}>
+                      <Tag size={9} strokeWidth={2} style={{ opacity:0.6 }} />
+                      {issue.criterioEleg}
+                    </span>
+                  )}
+                  {issue.linkCampanha && (
+                    <a
+                      href={issue.linkCampanha}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{ fontSize:10, color:"#6366F1", display:"flex", alignItems:"center", gap:4, textDecoration:"none" }}
+                    >
+                      <Link size={9} strokeWidth={2} /> Ver link
+                    </a>
+                  )}
+                </div>
+
               </div>
 
               <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:8 }}>
-                <StatusBadge inicio={issue.data_inicio} fim={issue.data_resolucao} />
+                <StatusBadge inicio={issue.datainicio} fim={issue.dataresolucao} />
                 <span style={{ fontSize:10, color:t.textDeep }}>Ver detalhes →</span>
               </div>
             </div>
           </div>
         ))}
+
       </main>
 
       <style>{`@keyframes fadeIn { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:translateY(0)} }`}</style>
