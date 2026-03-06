@@ -287,7 +287,7 @@ export default function CampanhasPage() {
         {filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:t.textDeep, paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
-          <div key={issue.chave} onClick={() => navigate(`/campanhas${marca ? `/${marca}` : ""}/promo/${issue.chave}`)}
+          <div key={issue.chave} onClick={() => navigate(marca ? `/campanhas/${marca}/promo/${issue.chave}` : `/campanhas/promo/${issue.chave}`)}
             style={{ background:t.card, borderRadius:12, padding:"18px 20px", marginBottom:10, cursor:"pointer", border:`1px solid ${t.border}`, transition:"all 0.15s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.4)"; e.currentTarget.style.background=t.cardHover; e.currentTarget.style.transform="translateY(-1px)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.background=t.card; e.currentTarget.style.transform="none"; }}
