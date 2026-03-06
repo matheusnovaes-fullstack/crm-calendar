@@ -1,20 +1,23 @@
-import axios from "axios";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001/api";
 
-const BASE = "http://localhost:3001/api";
-
-const api = axios.create({
-  baseURL: BASE
-});
-
-export async function getIssues(projeto) {
-  const res = await api.get(`/issues/${projeto}`);
-  return res.data;
+export async function getIssues(projeto = "CP") {
+  const response = await fetch(`${API_BASE}/issues/${projeto}`);
+  if (!response.ok) throw new Error(`Erro ${response.status}`);
+  return response.json();
 }
 
-export async function getAnexos(key) {
-  const res = await api.get(`/issues/${key}/attachments`);
-  return res.data;
+export async function getAttachments(key) {
+  try {
+    const response = await fetch(`${API_BASE}/issues/${key}/attachments`);
+    if (!response.ok) throw new Error(`Erro ${response.status}`);
+    return response.json();
+  } catch {
+    return [];
+  }
 }
 
-export const anexoProxy = url =>
-  `${BASE}/issues/anexo-proxy?url=${encodeURIComponent(url)}`;
+export async function proxyAnexo(url) {
+  return fetch(`${API_BASE}/issues/anexo-proxy?url=${encodeURIComponent(url)}`);
+}
+
+export default { getIssues, getAttachments, proxyAnexo };
