@@ -3,6 +3,25 @@ import { useState, useEffect, useRef } from "react";
 const ANTECEDENCIA_15 = 15 * 60 * 1000;
 const ANTECEDENCIA_5  =  5 * 60 * 1000;
 
+const STORAGE_HISTORICO  = "crm_notif_historico";
+const STORAGE_NOTIFICADO = "crm_notif_janotificado";
+
+function salvarHistorico(h) {
+  try { localStorage.setItem(STORAGE_HISTORICO, JSON.stringify(h)); } catch {}
+}
+
+function carregarHistorico() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_HISTORICO) || "[]"); } catch { return []; }
+}
+
+function salvarJaNotificado(set) {
+  try { localStorage.setItem(STORAGE_NOTIFICADO, JSON.stringify([...set])); } catch {}
+}
+
+function carregarJaNotificado() {
+  try { return new Set(JSON.parse(localStorage.getItem(STORAGE_NOTIFICADO) || "[]")); } catch { return new Set(); }
+}
+
 function tocarSinal(urgente = false) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -27,17 +46,61 @@ function tocarSinal(urgente = false) {
       tocar(660, 0.0, 0.2);
       tocar(880, 0.3, 0.2);
     }
-  } catch { /* áudio bloqueado */ }
+  } catch {}
 }
 
-export function useNotificacoes(issues) {
+export function useNotificacoes(issues, newPromos = []) {
   const [fila,      setFila]      = useState([]);
   const [atual,     setAtual]     = useState(null);
-  const [historico, setHistorico] = useState([]);  // ← novo
-  const jaNotificado = useRef(new Set());
-  const timerRef     = useRef(null);
 
-  // Verifica a cada 10s para maior precisão
+  // 🔥 Histórico carregado do localStorage — persiste entre recargas
+  const [historico, setHistorico] = useState(() => carregarHistorico());
+
+  // 🔥 jaNotificado carregado do localStorage — não repete após recarga
+  const jaNotificado = useRef(carregarJaNotificado());
+
+  const timerRef = useRef(null);
+
+  // Helper para adicionar notificação ao histórico e persistir
+  function adicionarNotif(notif) {
+    setHistorico(h => {
+      const nova = [notif, ...h].slice(0, 100); // guarda até 100
+      salvarHistorico(nova);
+      return nova;
+    });
+    jaNotificado.current.add(notif.id);
+    salvarJaNotificado(jaNotificado.current);
+  }
+
+  // 🔥 Monitora newPromos — nova campanha inserida no Jira
+  const prevNewPromos = useRef([]);
+  useEffect(() => {
+    if (newPromos.length === 0) return;
+
+    newPromos.forEach(chave => {
+      const id = `${chave}_nova`;
+      if (jaNotificado.current.has(id)) return;
+
+      const issue = issues.find(i => i.chave === chave);
+      const notif = {
+        id,
+        chave,
+        resumo:  issue?.resumo || chave,
+        minutos: 0,
+        horario: new Date().toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" }),
+        urgente: false,
+        tipo:    "nova",
+        ts:      Date.now(),
+        lida:    false,
+      };
+
+      adicionarNotif(notif);
+      tocarSinal(false);
+      setFila(prev => [...prev, notif]);
+    });
+  }, [newPromos]);
+
+  // Verificação de alertas de tempo (a cada 10s)
   useEffect(() => {
     function checar() {
       const agora = Date.now();
@@ -53,34 +116,31 @@ export function useNotificacoes(issues) {
 
         // Alerta 15 min antes do fim
         if (restante > 0 && restante <= ANTECEDENCIA_15 && !jaNotificado.current.has(`${issue.chave}_15`)) {
-          jaNotificado.current.add(`${issue.chave}_15`);
-          const notif = { id:`${issue.chave}_15`, chave:issue.chave, resumo:issue.resumo, minutos:15, horario, urgente:false, tipo:"encerramento", ts: Date.now() };
+          const notif = { id:`${issue.chave}_15`, chave:issue.chave, resumo:issue.resumo, minutos:15, horario, urgente:false, tipo:"encerramento", ts:Date.now(), lida:false };
           novas.push(notif);
-          setHistorico(h => [notif, ...h].slice(0, 50));
+          adicionarNotif(notif);
         }
 
         // Alerta 5 min antes do fim
         if (restante > 0 && restante <= ANTECEDENCIA_5 && !jaNotificado.current.has(`${issue.chave}_5`)) {
-          jaNotificado.current.add(`${issue.chave}_5`);
-          const notif = { id:`${issue.chave}_5`, chave:issue.chave, resumo:issue.resumo, minutos:5, horario, urgente:true, tipo:"encerramento", ts: Date.now() };
+          const notif = { id:`${issue.chave}_5`, chave:issue.chave, resumo:issue.resumo, minutos:5, horario, urgente:true, tipo:"encerramento", ts:Date.now(), lida:false };
           novas.push(notif);
-          setHistorico(h => [notif, ...h].slice(0, 50));
+          adicionarNotif(notif);
         }
 
-        // Notifica quando campanha inicia (janela de 30s)
+        // Campanha iniciando (janela de 30s)
         if (inicio && Math.abs(agora - inicio) <= 30000 && !jaNotificado.current.has(`${issue.chave}_inicio`)) {
-          jaNotificado.current.add(`${issue.chave}_inicio`);
-          const notif = { id:`${issue.chave}_inicio`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario: new Date(inicio).toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}), urgente:false, tipo:"inicio", ts: Date.now() };
+          const hi = new Date(inicio).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
+          const notif = { id:`${issue.chave}_inicio`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario:hi, urgente:false, tipo:"inicio", ts:Date.now(), lida:false };
           novas.push(notif);
-          setHistorico(h => [notif, ...h].slice(0, 50));
+          adicionarNotif(notif);
         }
 
-        // Notifica quando campanha encerra (janela de 30s)
+        // Campanha encerrando (janela de 30s)
         if (restante <= 0 && Math.abs(agora - fim) <= 30000 && !jaNotificado.current.has(`${issue.chave}_fim`)) {
-          jaNotificado.current.add(`${issue.chave}_fim`);
-          const notif = { id:`${issue.chave}_fim`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario, urgente:false, tipo:"encerrada", ts: Date.now() };
+          const notif = { id:`${issue.chave}_fim`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario, urgente:false, tipo:"encerrada", ts:Date.now(), lida:false };
           novas.push(notif);
-          setHistorico(h => [notif, ...h].slice(0, 50));
+          adicionarNotif(notif);
         }
       });
 
@@ -91,11 +151,11 @@ export function useNotificacoes(issues) {
     }
 
     checar();
-    // Intervalo de 10s para precisão nos alertas de 5 e 15 min
     timerRef.current = setInterval(checar, 10 * 1000);
     return () => clearInterval(timerRef.current);
   }, [issues]);
 
+  // Exibe próxima da fila
   useEffect(() => {
     if (!atual && fila.length > 0) {
       const t = setTimeout(() => {
@@ -107,10 +167,26 @@ export function useNotificacoes(issues) {
   }, [fila, atual]);
 
   return {
-    notificacao: atual,
-    confirmar: () => setAtual(null),
-    historico,               // ← exposto para o sininho
+    notificacao:   atual,
+    confirmar:     () => setAtual(null),
+    historico,
     totalNaoLidas: historico.filter(n => !n.lida).length,
-    marcarLidas: () => setHistorico(h => h.map(n => ({ ...n, lida: true }))),
+
+    // 🔥 marcarLidas persiste no localStorage
+    marcarLidas: () => {
+      setHistorico(h => {
+        const atualizado = h.map(n => ({ ...n, lida: true }));
+        salvarHistorico(atualizado);
+        return atualizado;
+      });
+    },
+
+    // 🔥 NOVO — analista pode limpar o histórico quando quiser
+    limparHistorico: () => {
+      setHistorico([]);
+      localStorage.removeItem(STORAGE_HISTORICO);
+      localStorage.removeItem(STORAGE_NOTIFICADO);
+      jaNotificado.current = new Set();
+    },
   };
 }
