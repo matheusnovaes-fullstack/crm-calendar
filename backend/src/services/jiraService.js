@@ -32,12 +32,32 @@ const extrairTexto = (doc) => {
     .trim() || null;
 };
 
+// 🔥 extrairValor mais robusto para custom fields do Jira
 const extrairValor = (campo) => {
   if (!campo) return null;
-  if (typeof campo === "string") return campo;
-  if (Array.isArray(campo)) return campo.map(v => v?.value || v?.name || v).filter(Boolean).join(", ");
-  return campo.value || campo.name || null;
+  
+  // Texto simples
+  if (typeof campo === "string") return campo.trim();
+  
+  // Array de opções (multiselect)
+  if (Array.isArray(campo)) {
+    return campo
+      .map(v => {
+        if (typeof v === "string") return v;
+        return v?.value || v?.name || v?.label || null;
+      })
+      .filter(Boolean)
+      .join(", ") || null;
+  }
+  
+  // Objeto único (select)
+  return campo?.value || campo?.name || campo?.label || null;
 };
+
+// No return do issue — mapeamento mais robusto:
+segmento: extrairValor(f.customfield_17929),
+tipoPremio: extrairValor(f.customfield_17930),
+
 
 async function buscarIssues(projeto) {
   console.log(`🔍 Buscando issues do projeto ${projeto}...`);
