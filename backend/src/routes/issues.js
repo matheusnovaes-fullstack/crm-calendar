@@ -10,6 +10,32 @@ const auth = {
 
 let cache = {};
 
+// === NOVAS FUNÇÕES PARA RICHTEXT ===
+function extrairTextoRich(doc) {
+  function walk(node) {
+    if (node.type === 'text') return node.text || '';
+    if (node.content && Array.isArray(node.content)) {
+      return node.content.map(walk).join('');
+    }
+    return '';
+  }
+  return walk(doc) || null;
+}
+
+function extrairValor(issue, campoId) {
+  const campo = issue.fields[`customfield_${campoId}`];
+  
+  if (!campo) return null;
+  
+  // Trata rich text (Jira rich editor)
+  if (campo.type === 'doc' && campo.content) {
+    return extrairTextoRich(campo);
+  }
+  
+  // Campo simples (string/select)
+  return campo.value || campo || null;
+}
+
 // Proxy de anexos autenticados
 router.get("/anexo-proxy", async (req, res) => {
   const { url } = req.query;
