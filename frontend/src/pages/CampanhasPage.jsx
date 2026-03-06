@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
-import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X } from "lucide-react";
+import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X, Tag, Trophy } from "lucide-react";
 
 const MARCAS_MAP = {
   "a7kbetbr":     { label:"7K",      color:"#09ff00" },
@@ -218,6 +218,18 @@ export default function CampanhasPage() {
                   {issue.casa && (
                     <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                       <Home size={10} strokeWidth={2} /> {issue.casa}
+                    </span>
+                  )}
+                  {/* 🔥 NOVO — Segmento */}
+                  {issue.segmento && issue.segmento !== "—" && (
+                    <span style={{ fontSize:11, color:"#A78BFA", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                      <Tag size={10} strokeWidth={2} /> {issue.segmento}
+                    </span>
+                  )}
+                  {/* 🔥 NOVO — Tipo de Prêmio */}
+                  {issue.tipoPremio && issue.tipoPremio !== "—" && (
+                    <span style={{ fontSize:11, color:"#34D399", background:"rgba(52,211,153,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                      <Trophy size={10} strokeWidth={2} /> {issue.tipoPremio}
                     </span>
                   )}
                 </div>
