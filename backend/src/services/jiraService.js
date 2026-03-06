@@ -34,17 +34,41 @@ const extrairTexto = (doc) => {
 
 const extrairValor = (campo) => {
   if (!campo) return null;
-  if (typeof campo === "string") return campo.trim();
+
+  // Texto simples
+  if (typeof campo === "string") {
+    return campo.trim();
+  }
+
+  // Número ou boolean
+  if (typeof campo === "number" || typeof campo === "boolean") {
+    return campo;
+  }
+
+  // Arrays (multi-select, labels, etc)
   if (Array.isArray(campo)) {
     return campo
-      .map(v => {
-        if (typeof v === "string") return v;
-        return v.value || v.name || v.label || null;
+      .map((item) => {
+        if (typeof item === "string") return item;
+        if (item?.value) return item.value;
+        if (item?.name) return item.name;
+        if (item?.displayName) return item.displayName;
+        return null;
       })
       .filter(Boolean)
-      .join(", ") || null;
+      .join(", ");
   }
-  return campo.value || campo.name || campo.label || null;
+
+  // Objetos padrão do Jira
+  if (typeof campo === "object") {
+    if (campo.value) return campo.value;
+    if (campo.name) return campo.name;
+    if (campo.displayName) return campo.displayName;
+    if (campo.label) return campo.label;
+    if (campo.text) return campo.text;
+  }
+
+  return null;
 };
 
 async function buscarIssues(projeto) {
