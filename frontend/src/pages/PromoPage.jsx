@@ -124,6 +124,9 @@ export default function PromoPage() {
     { label:"Componente",               value:issue.componente         },
     { label:"Prioridade",               value:issue.prioridade         },
     { label:"Casa",                     value:issue.casa               },
+    { label:"Canal de Envio",           value:issue.canalEnvio         },
+    { label:"Critério de Elegibilidade", value:issue.criterioEleg      },
+    { label:"Link da Campanha",         value:issue.linkCampanha       },
     // 🔥 casa2 nos campos de detalhe (além do badge no header)
     { label:"Marca Secundária",         value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
     { label:"Jogo",                     value:issue.jogo               },
