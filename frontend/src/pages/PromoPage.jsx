@@ -4,7 +4,7 @@ import { getIssues, getAnexos, anexoProxy } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
 import { useNotificacoesCtx, useTemaCtx } from "../App";
-import { ArrowLeft, Home, Paperclip, Download } from "lucide-react";
+import { ArrowLeft, Home, Paperclip, Download, Tag, Trophy } from "lucide-react";
 
 function LoadingBar({ t }) {
   const [width, setWidth] = useState(0);
@@ -78,10 +78,21 @@ export default function PromoPage() {
   const [anexos,  setAnexos]  = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const mes  = searchParams.get("mes");
-  const ano  = searchParams.get("ano");
-  const from = searchParams.get("from");
-  const voltarUrl = from ? `/day/${from}?mes=${mes}&ano=${ano}` : "/";
+  const mes   = searchParams.get("mes");
+  const ano   = searchParams.get("ano");
+  const from  = searchParams.get("from");
+  const marca = searchParams.get("marca");
+
+  // 🔥 Voltarurl inteligente:
+  // - se veio de um DayPage  → volta para o dia
+  // - se veio de CampanhasPage com marca → volta para /campanhas/:marca
+  // - se veio de CampanhasPage sem marca → volta para /campanhas
+  // - fallback → calendário
+  const voltarUrl = from
+    ? `/day/${from}?mes=${mes}&ano=${ano}`
+    : marca
+      ? `/campanhas/${marca}`
+      : "/campanhas";
 
   useEffect(() => {
     Promise.all([getIssues("CP"), getAnexos(key).catch(() => ({ data:[] }))])
@@ -106,30 +117,33 @@ export default function PromoPage() {
   const fmt = d => d ? new Date(d).toLocaleString("pt-BR") : "—";
 
   const campos = [
-    { label:"Chave",              value:issue.chave            },
-    { label:"Nome da Promoção",   value:issue.nome_promocao    },
-    { label:"Request Type",       value:issue.request_type     },
-    { label:"Catálogo",           value:issue.catalogo         },
-    { label:"Componente",         value:issue.componente       },
-    { label:"Prioridade",         value:issue.prioridade       },
-    { label:"Casa",               value:issue.casa             },
-    { label:"Jogo",               value:issue.jogo             },
-    { label:"Segmento / Público", value:issue.segmento         }, // já existia
-    { label:"Tipo de Prêmio",     value:issue.tipoPremio       }, // 🔥 NOVO
-    { label:"ID Cliente VIP",     value:issue.id_cliente_vip   },
-    { label:"Aplicação",          value:issue.aplicacao        },
-    { label:"Valor Ingresso",     value:issue.valor_ingresso   },
-    { label:"Valor R$",           value:issue.valor_reais      },
-    { label:"Relator",            value:issue.relator          },
-    { label:"Responsável",        value:issue.responsavel      },
-    { label:"Resp. Campanha",     value:issue.responsavel_camp },
-    { label:"Criado em",          value:fmt(issue.criado)      },
-    { label:"Data Início",        value:fmt(issue.data_inicio)    },
-    { label:"Data Resolução",     value:fmt(issue.data_resolucao) },
-    { label:"SLA Tempo",          value:issue.sla_tempo        },
-    { label:"SLA Restante",       value:issue.sla_restante     },
-    { label:"Descrição Benefício",value:issue.descricao_benef  },
-    { label:"Pontos Críticos",    value:issue.pontos_criticos  },
+    { label:"Chave",                    value:issue.chave              },
+    { label:"Nome da Promoção",         value:issue.nome_promocao      },
+    { label:"Request Type",             value:issue.request_type       },
+    { label:"Catálogo",                 value:issue.catalogo           },
+    { label:"Componente",               value:issue.componente         },
+    { label:"Prioridade",               value:issue.prioridade         },
+    { label:"Casa",                     value:issue.casa               },
+    // 🔥 casa2 nos campos de detalhe (além do badge no header)
+    { label:"Marca Secundária",         value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
+    { label:"Jogo",                     value:issue.jogo               },
+    { label:"Segmento / Público",       value:issue.segmento           },
+    { label:"Tipo de Prêmio",           value:issue.tipoPremio         }, // 🔥
+    { label:"ID Cliente VIP",           value:issue.id_cliente_vip     },
+    { label:"Aplicação",                value:issue.aplicacao          },
+    { label:"Valor Ingresso",           value:issue.valor_ingresso     },
+    { label:"Valor R$",                 value:issue.valor_reais        },
+    { label:"Relator",                  value:issue.relator            },
+    { label:"Responsável",              value:issue.responsavel        },
+    { label:"Resp. Campanha",           value:issue.responsavel_camp   },
+    { label:"Criado em",                value:fmt(issue.criado)        },
+    { label:"Data Início",              value:fmt(issue.data_inicio)   },
+    { label:"Data Resolução",           value:fmt(issue.data_resolucao)},
+    { label:"SLA Tempo",                value:issue.sla_tempo          },
+    { label:"SLA Restante",             value:issue.sla_restante       },
+    // 🔥 Labels corrigidos conforme lista oficial
+    { label:"Oferta / Incentivo",       value:issue.descricao_benef    },
+    { label:"Observações Operacionais", value:issue.pontos_criticos    },
   ];
 
   return (
@@ -139,6 +153,7 @@ export default function PromoPage() {
       <main style={{ flex:1, padding:"28px 32px", overflowY:"auto" }}>
         <div style={{ maxWidth:920, margin:"0 auto" }}>
 
+          {/* Header */}
           <div style={{ display:"flex", alignItems:"flex-start", gap:14, marginBottom:24 }}>
             <button onClick={() => navigate(voltarUrl)} style={{
               background:t.card, color:t.textMuted, border:`1px solid ${t.border}`,
@@ -154,14 +169,43 @@ export default function PromoPage() {
 
             <div style={{ flex:1 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, flexWrap:"wrap" }}>
-                <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(99,102,241,0.2)" }}>{issue.chave}</span>
+
+                {/* Chave */}
+                <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(99,102,241,0.2)" }}>
+                  {issue.chave}
+                </span>
+
+                {/* Casa principal */}
                 {issue.casa && (
                   <span style={{ background:"rgba(245,158,11,0.1)", color:"#F59E0B", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                     <Home size={11} strokeWidth={2} /> {issue.casa}
                   </span>
                 )}
+
+                {/* 🔥 Casa 2 — só aparece se diferente da principal */}
+                {issue.casa2 && issue.casa2 !== issue.casa && (
+                  <span style={{ background:"rgba(245,158,11,0.07)", color:"#F59E0B", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(245,158,11,0.15)", display:"flex", alignItems:"center", gap:4 }}>
+                    <Home size={11} strokeWidth={2} /> {issue.casa2}
+                  </span>
+                )}
+
+                {/* 🔥 Segmento badge */}
+                {issue.segmento && issue.segmento !== "—" && (
+                  <span style={{ background:"rgba(167,139,250,0.1)", color:"#A78BFA", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                    <Tag size={11} strokeWidth={2} /> {issue.segmento}
+                  </span>
+                )}
+
+                {/* 🔥 Tipo de Prêmio badge */}
+                {issue.tipoPremio && issue.tipoPremio !== "—" && (
+                  <span style={{ background:"rgba(52,211,153,0.1)", color:"#34D399", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                    <Trophy size={11} strokeWidth={2} /> {issue.tipoPremio}
+                  </span>
+                )}
+
                 <StatusBadge inicio={issue.data_inicio} fim={issue.data_resolucao} />
               </div>
+
               <h1 style={{ fontSize:22, fontWeight:800, color:t.text, letterSpacing:"-0.4px" }}>{issue.resumo}</h1>
               <p style={{ fontSize:12, color:t.textMuted, marginTop:6 }}>{issue.request_type} · {issue.catalogo}</p>
             </div>
@@ -231,6 +275,7 @@ export default function PromoPage() {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </main>
