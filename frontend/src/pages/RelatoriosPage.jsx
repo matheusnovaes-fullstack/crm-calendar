@@ -19,7 +19,8 @@ const CAMPOS_DISPONIVEIS = [
   { key:"componente",     label:"Componente"        },
   { key:"catalogo",       label:"Catálogo"          },
   { key:"request_type",   label:"Request Type"      },
-  { key:"segmento",       label:"Segmento"          },
+  { key:"segmento",       label:"Segmento / Público" }, // 🔥 JÁ EXISTIA, mantido
+  { key:"tipoPremio",     label:"Tipo de Prêmio"    }, // 🔥 NOVO
   { key:"valor_reais",    label:"Valor R$"          },
 ];
 
@@ -48,7 +49,7 @@ function exportarJSON(dados, campos) {
 
 function ModalExport({ dados, onFechar, t }) {
   const [selecionados, setSelecionados] = useState(
-    new Set(["chave","resumo","status","casa","data_inicio","data_resolucao","responsavel"])
+    new Set(["chave","resumo","status","casa","data_inicio","data_resolucao","responsavel","segmento","tipoPremio"])
   );
   function toggle(key) { setSelecionados(prev => { const next = new Set(prev); next.has(key) ? next.delete(key) : next.add(key); return next; }); }
   const camposSelecionados = CAMPOS_DISPONIVEIS.filter(c => selecionados.has(c.key));
