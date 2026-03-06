@@ -1,10 +1,9 @@
-// CampanhasPage.jsx
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useIssuesCtx, useNotificacoesCtx, useTemaCtx } from "../App";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
-import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X, Tag, Trophy } from "lucide-react";
+import { Search, CalendarDays, Flag, User, Home, SlidersHorizontal, X, Tag, Trophy, ArrowUpDown } from "lucide-react";
 
 const MARCAS_MAP = {
   "a7kbetbr":     { label:"7K",      color:"#09ff00" },
@@ -12,18 +11,36 @@ const MARCAS_MAP = {
   "verabetbr":    { label:"Vera",    color:"#66ff00" },
 };
 
+const ORDENACAO_OPTS = [
+  { key:"data_inicio_desc",    label:"Início ↓ mais recente" },
+  { key:"data_inicio_asc",     label:"Início ↑ mais antigo"  },
+  { key:"data_resolucao_desc", label:"Fim ↓ mais recente"    },
+  { key:"data_resolucao_asc",  label:"Fim ↑ mais antigo"     },
+  { key:"responsavel_asc",     label:"Responsável A→Z"       },
+  { key:"chave_desc",          label:"Chave ↓ mais novo"     },
+];
+
+function ordenar(lista, key) {
+  return [...lista].sort((a, b) => {
+    switch (key) {
+      case "data_inicio_desc":    return new Date(b.data_inicio||0)    - new Date(a.data_inicio||0);
+      case "data_inicio_asc":     return new Date(a.data_inicio||0)    - new Date(b.data_inicio||0);
+      case "data_resolucao_desc": return new Date(b.data_resolucao||0) - new Date(a.data_resolucao||0);
+      case "data_resolucao_asc":  return new Date(a.data_resolucao||0) - new Date(b.data_resolucao||0);
+      case "responsavel_asc":     return (a.responsavel||"").localeCompare(b.responsavel||"");
+      case "chave_desc":          return b.chave.localeCompare(a.chave);
+      default: return 0;
+    }
+  });
+}
+
 function FiltroData({ label, value, onChange, onClear, t }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:5, flex:1 }}>
       <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8 }}>{label}</label>
       <div style={{ position:"relative" }}>
         <input type="datetime-local" value={value} onChange={e => onChange(e.target.value)}
-          style={{
-            width:"100%", padding:"9px 34px 9px 12px", borderRadius:8,
-            border:`1px solid ${t.border}`, background:t.inputAlt,
-            color: value ? t.text : t.textDim, fontSize:12,
-            outline:"none", boxSizing:"border-box", colorScheme: t.colorScheme
-          }}
+          style={{ width:"100%", padding:"9px 34px 9px 12px", borderRadius:8, border:`1px solid ${t.border}`, background:t.inputAlt, color: value ? t.text : t.textDim, fontSize:12, outline:"none", boxSizing:"border-box", colorScheme: t.colorScheme }}
           onFocus={e => e.target.style.borderColor="#6366F1"}
           onBlur={e  => e.target.style.borderColor=t.border}
         />
@@ -37,6 +54,20 @@ function FiltroData({ label, value, onChange, onClear, t }) {
   );
 }
 
+function ChipFiltro({ label, ativo, onClick, cor, t }) {
+  return (
+    <button onClick={onClick} style={{
+      padding:"4px 10px", borderRadius:6, fontSize:11, fontWeight:600,
+      cursor:"pointer", transition:"all 0.15s",
+      background: ativo ? `${cor}20` : "transparent",
+      border: `1px solid ${ativo ? cor+"66" : t.border}`,
+      color: ativo ? cor : t.textMuted,
+    }}>
+      {label}
+    </button>
+  );
+}
+
 export default function CampanhasPage() {
   const navigate  = useNavigate();
   const { marca } = useParams();
@@ -45,39 +76,50 @@ export default function CampanhasPage() {
   const { historico, totalNaoLidas, marcarLidas }         = useNotificacoesCtx();
   const { t }                                             = useTemaCtx();
 
-  const [busca,        setBusca]        = useState("");
-  const [filtro,       setFiltro]       = useState("todos");
-  const [filtroResp,   setFiltroResp]   = useState("todos");
-  const [filtroAberto, setFiltroAberto] = useState(false);
-  const [dataInicio,   setDataInicio]   = useState("");
-  const [dataFim,      setDataFim]      = useState("");
+  const [busca,          setBusca]          = useState("");
+  const [filtro,         setFiltro]         = useState("todos");
+  const [filtroResp,     setFiltroResp]     = useState("todos");
+  const [filtroSegmento, setFiltroSegmento] = useState("todos");
+  const [filtroPremio,   setFiltroPremio]   = useState("todos");
+  const [filtroAberto,   setFiltroAberto]   = useState(false);
+  const [dataInicio,     setDataInicio]     = useState("");
+  const [dataFim,        setDataFim]        = useState("");
+  const [ordenacao,      setOrdenacao]      = useState("data_inicio_desc");
 
   const responsaveis = ["todos", ...Array.from(new Set(issues.map(i => i.responsavel).filter(Boolean))).sort()];
+  const segmentos    = ["todos", ...Array.from(new Set(issues.map(i => i.segmento).filter(v => v && v !== "—"))).sort()];
+  const premios      = ["todos", ...Array.from(new Set(issues.map(i => i.tipoPremio).filter(v => v && v !== "—"))).sort()];
 
   const issuesPorMarca = marca
     ? issues.filter(i => (i.casa||"").toLowerCase().replace(/\s/g,"") === marca || (i.casa2||"").toLowerCase().replace(/\s/g,"") === marca)
     : issues;
 
   const temFiltroData  = dataInicio || dataFim;
-  const temFiltroAtivo = temFiltroData || filtroResp !== "todos";
+  const temFiltroAtivo = temFiltroData || filtroResp !== "todos" || filtroSegmento !== "todos" || filtroPremio !== "todos";
 
   function limparFiltros() {
     setDataInicio(""); setDataFim("");
-    setFiltro("todos"); setBusca(""); setFiltroResp("todos");
+    setFiltro("todos"); setBusca("");
+    setFiltroResp("todos"); setFiltroSegmento("todos"); setFiltroPremio("todos");
   }
 
-  const filtradas = issuesPorMarca.filter(i => {
-    const matchFiltro = filtro === "todos" || (i.statusDinamico||"sem_data") === filtro;
-    const matchBusca  = busca === "" ||
-      i.chave.toLowerCase().includes(busca.toLowerCase()) ||
-      (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
-      (i.casa||"").toLowerCase().includes(busca.toLowerCase());
-    const matchResp   = filtroResp === "todos" || i.responsavel === filtroResp;
-    let matchData = true;
-    if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
-    if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
-    return matchFiltro && matchBusca && matchResp && matchData;
-  });
+  const filtradas = ordenar(
+    issuesPorMarca.filter(i => {
+      const matchFiltro    = filtro === "todos" || (i.statusDinamico||"sem_data") === filtro;
+      const matchBusca     = busca === "" ||
+        i.chave.toLowerCase().includes(busca.toLowerCase()) ||
+        (i.resumo||"").toLowerCase().includes(busca.toLowerCase()) ||
+        (i.casa||"").toLowerCase().includes(busca.toLowerCase());
+      const matchResp      = filtroResp     === "todos" || i.responsavel === filtroResp;
+      const matchSegmento  = filtroSegmento === "todos" || i.segmento   === filtroSegmento;
+      const matchPremio    = filtroPremio   === "todos" || i.tipoPremio  === filtroPremio;
+      let matchData = true;
+      if (dataInicio) { const di = new Date(dataInicio); const fe = i.data_resolucao ? new Date(i.data_resolucao) : null; if (!fe || fe < di) matchData = false; }
+      if (dataFim && matchData) { const df = new Date(dataFim); const fs = i.data_inicio ? new Date(i.data_inicio) : null; if (!fs || fs > df) matchData = false; }
+      return matchFiltro && matchBusca && matchResp && matchSegmento && matchPremio && matchData;
+    }),
+    ordenacao
+  );
 
   const counts = {
     todos:     issuesPorMarca.length,
@@ -108,18 +150,32 @@ export default function CampanhasPage() {
             </h1>
           </div>
 
-          <button onClick={() => setFiltroAberto(v => !v)} style={{
-            display:"flex", alignItems:"center", gap:6,
-            background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : t.card,
-            border:`1px solid ${filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.4)" : t.border}`,
-            borderRadius:9, padding:"9px 14px", cursor:"pointer", fontSize:12, fontWeight:600,
-            color: filtroAberto || temFiltroAtivo ? "#A5B4FC" : t.textMuted,
-            transition:"all 0.15s", position:"relative"
-          }}>
-            <SlidersHorizontal size={13} strokeWidth={2} />
-            Filtrar
-            {temFiltroAtivo && <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />}
-          </button>
+          <div style={{ display:"flex", gap:10, alignItems:"center" }}>
+            {/* Ordenação */}
+            <div style={{ position:"relative", display:"flex", alignItems:"center" }}>
+              <ArrowUpDown size={13} style={{ position:"absolute", left:10, color:t.textDeep, pointerEvents:"none" }} />
+              <select value={ordenacao} onChange={e => setOrdenacao(e.target.value)} style={{
+                padding:"9px 12px 9px 30px", borderRadius:9, border:`1px solid ${t.border}`,
+                background:t.card, color:t.textMuted, fontSize:11, fontWeight:600,
+                outline:"none", cursor:"pointer", colorScheme: t.colorScheme
+              }}>
+                {ORDENACAO_OPTS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+              </select>
+            </div>
+
+            <button onClick={() => setFiltroAberto(v => !v)} style={{
+              display:"flex", alignItems:"center", gap:6,
+              background: filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.15)" : t.card,
+              border:`1px solid ${filtroAberto || temFiltroAtivo ? "rgba(99,102,241,0.4)" : t.border}`,
+              borderRadius:9, padding:"9px 14px", cursor:"pointer", fontSize:12, fontWeight:600,
+              color: filtroAberto || temFiltroAtivo ? "#A5B4FC" : t.textMuted,
+              transition:"all 0.15s", position:"relative"
+            }}>
+              <SlidersHorizontal size={13} strokeWidth={2} />
+              Filtrar
+              {temFiltroAtivo && <span style={{ width:7, height:7, borderRadius:"50%", background:"#6366F1", position:"absolute", top:6, right:6 }} />}
+            </button>
+          </div>
         </div>
 
         <p style={{ fontSize:12, color:t.textDim, paddingLeft:13, marginBottom:20 }}>
@@ -138,7 +194,9 @@ export default function CampanhasPage() {
                 >Limpar tudo</button>
               )}
             </div>
-            <div style={{ display:"flex", gap:16, alignItems:"flex-end", marginBottom:16 }}>
+
+            {/* Datas */}
+            <div style={{ display:"flex", gap:16, alignItems:"flex-end", marginBottom:20 }}>
               <FiltroData label="INÍCIO A PARTIR DE" value={dataInicio} onChange={setDataInicio} onClear={() => setDataInicio("")} t={t} />
               <FiltroData label="ENCERRAMENTO ATÉ"   value={dataFim}    onChange={setDataFim}    onClear={() => setDataFim("")}    t={t} />
               <div style={{ paddingBottom:1 }}>
@@ -146,21 +204,44 @@ export default function CampanhasPage() {
                 <p style={{ fontSize:20, fontWeight:800, color:"#6366F1" }}>{filtradas.length}</p>
               </div>
             </div>
-            <div>
-              <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:6 }}>RESPONSÁVEL</label>
-              <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+
+            {/* Responsável */}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8 }}>RESPONSÁVEL</label>
+              <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
                 {responsaveis.map(r => (
-                  <button key={r} onClick={() => setFiltroResp(r)} style={{
-                    padding:"5px 12px", borderRadius:6, fontSize:11, fontWeight:600, cursor:"pointer", transition:"all 0.15s",
-                    background: filtroResp === r ? "rgba(99,102,241,0.2)" : "transparent",
-                    border:`1px solid ${filtroResp === r ? "rgba(99,102,241,0.5)" : t.border}`,
-                    color: filtroResp === r ? "#A5B4FC" : t.textMuted
-                  }}>
-                    {r === "todos" ? "Todos" : r}
-                  </button>
+                  <ChipFiltro key={r} label={r === "todos" ? "Todos" : r} ativo={filtroResp === r} onClick={() => setFiltroResp(r)} cor="#6366F1" t={t} />
                 ))}
               </div>
             </div>
+
+            {/* Segmento */}
+            {segmentos.length > 1 && (
+              <div style={{ marginBottom:16 }}>
+                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
+                  <Tag size={10} strokeWidth={2} /> SEGMENTO / PÚBLICO
+                </label>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {segmentos.map(s => (
+                    <ChipFiltro key={s} label={s === "todos" ? "Todos" : s} ativo={filtroSegmento === s} onClick={() => setFiltroSegmento(s)} cor="#A78BFA" t={t} />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tipo de Prêmio */}
+            {premios.length > 1 && (
+              <div>
+                <label style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:0.8, display:"block", marginBottom:8, display:"flex", alignItems:"center", gap:5 }}>
+                  <Trophy size={10} strokeWidth={2} /> TIPO DE PRÊMIO
+                </label>
+                <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                  {premios.map(p => (
+                    <ChipFiltro key={p} label={p === "todos" ? "Todos" : p} ativo={filtroPremio === p} onClick={() => setFiltroPremio(p)} cor="#34D399" t={t} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -206,7 +287,7 @@ export default function CampanhasPage() {
         {filtradas.length === 0 ? (
           <div style={{ textAlign:"center", color:t.textDeep, paddingTop:60 }}>Nenhuma campanha encontrada.</div>
         ) : filtradas.map(issue => (
-          <div key={issue.chave} onClick={() => navigate(`/promo/${issue.chave}`)}
+          <div key={issue.chave} onClick={() => navigate(`/campanhas${marca ? `/${marca}` : ""}/promo/${issue.chave}`)}
             style={{ background:t.card, borderRadius:12, padding:"18px 20px", marginBottom:10, cursor:"pointer", border:`1px solid ${t.border}`, transition:"all 0.15s" }}
             onMouseEnter={e => { e.currentTarget.style.borderColor="rgba(99,102,241,0.4)"; e.currentTarget.style.background=t.cardHover; e.currentTarget.style.transform="translateY(-1px)"; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor=t.border; e.currentTarget.style.background=t.card; e.currentTarget.style.transform="none"; }}
@@ -220,15 +301,23 @@ export default function CampanhasPage() {
                       <Home size={10} strokeWidth={2} /> {issue.casa}
                     </span>
                   )}
-                  {/* 🔥 NOVO — Segmento */}
+                  {/* 🔥 casa2 */}
+                  {issue.casa2 && issue.casa2 !== issue.casa && (
+                    <span style={{ fontSize:11, color:"#F59E0B", background:"rgba(245,158,11,0.07)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(245,158,11,0.15)", display:"flex", alignItems:"center", gap:4 }}>
+                      <Home size={10} strokeWidth={2} /> {issue.casa2}
+                    </span>
+                  )}
                   {issue.segmento && issue.segmento !== "—" && (
-                    <span style={{ fontSize:11, color:"#A78BFA", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                    <span onClick={e => { e.stopPropagation(); setFiltroSegmento(issue.segmento); setFiltroAberto(true); }}
+                      style={{ fontSize:11, color:"#A78BFA", background:"rgba(167,139,250,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
+                      title="Filtrar por este segmento">
                       <Tag size={10} strokeWidth={2} /> {issue.segmento}
                     </span>
                   )}
-                  {/* 🔥 NOVO — Tipo de Prêmio */}
                   {issue.tipoPremio && issue.tipoPremio !== "—" && (
-                    <span style={{ fontSize:11, color:"#34D399", background:"rgba(52,211,153,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4 }}>
+                    <span onClick={e => { e.stopPropagation(); setFiltroPremio(issue.tipoPremio); setFiltroAberto(true); }}
+                      style={{ fontSize:11, color:"#34D399", background:"rgba(52,211,153,0.1)", padding:"2px 8px", borderRadius:5, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4, cursor:"pointer" }}
+                      title="Filtrar por este tipo de prêmio">
                       <Trophy size={10} strokeWidth={2} /> {issue.tipoPremio}
                     </span>
                   )}
