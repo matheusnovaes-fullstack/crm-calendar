@@ -7,7 +7,7 @@ import { useNotificacoesCtx, useTemaCtx } from "../App";
 import { ArrowLeft, Home, Paperclip, Download, Tag, Trophy } from "lucide-react";
 
 function LoadingBar({ t }) {
-  const [width, setWidth] = useState(0);
+  const [width, setWidth] = useState(0);f
 
   useEffect(() => {
     setTimeout(() => setWidth(30),   50);
@@ -248,7 +248,7 @@ export default function PromoPage() {
                           <img
                             src={anexoProxy(a.content)}
                             alt={a.filename}
-                            title="Clique para abrir em tamanho real"
+                            title={"Clique para abrir em tamanho real"}
                             style={{
                               width:"100%",
                               maxHeight:300,
