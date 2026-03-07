@@ -273,7 +273,6 @@ export default function PromoPage() {
                             target="_blank"
                             rel="noreferrer"
                             style={{ background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff", borderRadius:7, padding:"7px 14px", fontSize:11, textDecoration:"none", fontWeight:600, whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6 }}
-                          >
                             <Download size={11} strokeWidth={2.5} /> Baixar
                           </a>
                         </div>
