@@ -130,6 +130,7 @@ async function buscarIssues(projeto) {
           "customfield_14703",
           "customfield_15094",
           "customfield_12755",
+          "customfield_17929",
 
           // === NOVOS CAMPOS ===
           "customfield_14442",
