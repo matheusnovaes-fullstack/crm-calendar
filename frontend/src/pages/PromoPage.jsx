@@ -83,18 +83,12 @@ export default function PromoPage() {
   const from  = searchParams.get("from");
   const marca = searchParams.get("marca");
 
-  // 🔥 Voltarurl inteligente:
-  // - se veio de um DayPage  → volta para o dia
-  // - se veio de CampanhasPage com marca → volta para /campanhas/:marca
-  // - se veio de CampanhasPage sem marca → volta para /campanhas
-  // - fallback → calendário
   const voltarUrl = from
     ? `/day/${from}?mes=${mes}&ano=${ano}`
     : marca
       ? `/campanhas/${marca}`
       : "/campanhas";
 
-  // ✅ CORRETO
   useEffect(() => {
     Promise.all([
       getIssues("CP"),
@@ -123,36 +117,34 @@ export default function PromoPage() {
   const fmt = d => d ? new Date(d).toLocaleString("pt-BR") : "—";
 
   const campos = [
-    { label:"Chave",                    value:issue.chave              },
-    { label:"Nome da Promoção",         value:issue.nome_promocao      },
-    { label:"Request Type",             value:issue.request_type       },
-    { label:"Catálogo",                 value:issue.catalogo           },
-    { label:"Componente",               value:issue.componente         },
-    { label:"Prioridade",               value:issue.prioridade         },
-    { label:"Casa",                     value:issue.casa               },
-    { label:"Canal de Envio",           value:issue.canalEnvio         },
-    { label:"Critério de Elegibilidade", value:issue.criterioEleg      },
-    { label:"Link da Campanha",         value:issue.linkCampanha       },
-    // 🔥 casa2 nos campos de detalhe (além do badge no header)
-    { label:"Marca Secundária",         value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
-    { label:"Jogo",                     value:issue.jogo               },
-    { label:"Segmento / Público",       value:issue.segmento           },
-    { label:"Tipo de Prêmio",           value:issue.tipoPremio         }, // 🔥
-    { label:"ID Cliente VIP",           value:issue.id_cliente_vip     },
-    { label:"Aplicação",                value:issue.aplicacao          },
-    { label:"Valor Ingresso",           value:issue.valor_ingresso     },
-    { label:"Valor R$",                 value:issue.valor_reais        },
-    { label:"Relator",                  value:issue.relator            },
-    { label:"Responsável",              value:issue.responsavel        },
-    { label:"Resp. Campanha",           value:issue.responsavel_camp   },
-    { label:"Criado em",                value:fmt(issue.criado)        },
-    { label:"Data Início",              value:fmt(issue.data_inicio)   },
-    { label:"Data Resolução",           value:fmt(issue.data_resolucao)},
-    { label:"SLA Tempo",                value:issue.sla_tempo          },
-    { label:"SLA Restante",             value:issue.sla_restante       },
-    // 🔥 Labels corrigidos conforme lista oficial
-    { label:"Oferta / Incentivo",       value:issue.descricao_benef    },
-    { label:"Observações Operacionais", value:issue.pontos_criticos    },
+    { label:"Chave",                     value:issue.chave                                                    },
+    { label:"Nome da Promoção",          value:issue.nome_promocao                                            },
+    { label:"Request Type",              value:issue.request_type                                             },
+    { label:"Catálogo",                  value:issue.catalogo                                                 },
+    { label:"Componente",                value:issue.componente                                               },
+    { label:"Prioridade",                value:issue.prioridade                                               },
+    { label:"Casa",                      value:issue.casa                                                     },
+    { label:"Canal de Envio",            value:issue.canalEnvio                                               },
+    { label:"Critério de Elegibilidade", value:issue.criterioElegibilidade                                    },
+    { label:"Link da Campanha",          value:issue.linkCampanha                                             },
+    { label:"Marca Secundária",          value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
+    { label:"Jogo",                      value:issue.jogo                                                     },
+    { label:"Segmento / Público",        value:issue.segmento                                                 },
+    { label:"Tipo de Prêmio",            value:issue.tipoPremio                                               },
+    { label:"ID Cliente VIP",            value:issue.id_cliente_vip                                           },
+    { label:"Aplicação",                 value:issue.aplicacao                                                },
+    { label:"Valor Ingresso",            value:issue.valor_ingresso                                           },
+    { label:"Valor R$",                  value:issue.valor_reais                                              },
+    { label:"Relator",                   value:issue.relator                                                  },
+    { label:"Responsável",               value:issue.responsavel                                              },
+    { label:"Resp. Campanha",            value:issue.responsavel_camp                                         },
+    { label:"Criado em",                 value:fmt(issue.criado)                                              },
+    { label:"Data Início",               value:fmt(issue.data_inicio)                                         },
+    { label:"Data Resolução",            value:fmt(issue.data_resolucao)                                      },
+    { label:"SLA Tempo",                 value:issue.sla_tempo                                                },
+    { label:"SLA Restante",              value:issue.sla_restante                                             },
+    { label:"Oferta / Incentivo",        value:issue.descricao_benef                                          },
+    { label:"Observações Operacionais",  value:issue.pontos_criticos                                          },
   ];
 
   return (
@@ -179,33 +171,28 @@ export default function PromoPage() {
             <div style={{ flex:1 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:8, flexWrap:"wrap" }}>
 
-                {/* Chave */}
                 <span style={{ background:"rgba(99,102,241,0.15)", color:"#818CF8", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(99,102,241,0.2)" }}>
                   {issue.chave}
                 </span>
 
-                {/* Casa principal */}
                 {issue.casa && (
                   <span style={{ background:"rgba(245,158,11,0.1)", color:"#F59E0B", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(245,158,11,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                     <Home size={11} strokeWidth={2} /> {issue.casa}
                   </span>
                 )}
 
-                {/* 🔥 Casa 2 — só aparece se diferente da principal */}
                 {issue.casa2 && issue.casa2 !== issue.casa && (
                   <span style={{ background:"rgba(245,158,11,0.07)", color:"#F59E0B", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(245,158,11,0.15)", display:"flex", alignItems:"center", gap:4 }}>
                     <Home size={11} strokeWidth={2} /> {issue.casa2}
                   </span>
                 )}
 
-                {/* 🔥 Segmento badge */}
                 {issue.segmento && issue.segmento !== "—" && (
                   <span style={{ background:"rgba(167,139,250,0.1)", color:"#A78BFA", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(167,139,250,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                     <Tag size={11} strokeWidth={2} /> {issue.segmento}
                   </span>
                 )}
 
-                {/* 🔥 Tipo de Prêmio badge */}
                 {issue.tipoPremio && issue.tipoPremio !== "—" && (
                   <span style={{ background:"rgba(52,211,153,0.1)", color:"#34D399", fontSize:12, fontWeight:700, padding:"3px 10px", borderRadius:6, border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:4 }}>
                     <Trophy size={11} strokeWidth={2} /> {issue.tipoPremio}
@@ -255,20 +242,32 @@ export default function PromoPage() {
                     const isImg = a.mimeType?.startsWith("image/");
                     return (
                       <div key={a.id} style={{ background:t.cardAlt, borderRadius:10, overflow:"hidden", border:`1px solid ${t.border}` }}>
+
+                        {/* 🔥 Imagem clicável que abre em tamanho real */}
                         {isImg && (
                           <img
                             src={anexoProxy(a.content)}
                             alt={a.filename}
-                            style={{ width:"100%", maxHeight:160, objectFit:"cover" }}
+                            title="Clique para abrir em tamanho real"
+                            style={{
+                              width:"100%",
+                              maxHeight:300,
+                              objectFit:"contain",
+                              background:"#000",
+                              cursor:"zoom-in",
+                              display:"block"
+                            }}
+                            onClick={() => window.open(anexoProxy(a.content), "_blank")}
                             onError={e => e.target.style.display="none"}
                           />
                         )}
+
                         <div style={{ padding:"10px 12px", display:"flex", justifyContent:"space-between", alignItems:"center", gap:10 }}>
                           <div>
                             <p style={{ fontSize:11, color:t.textMuted, wordBreak:"break-all" }}>{a.filename}</p>
                             <p style={{ fontSize:10, color:t.textDeep, marginTop:2 }}>{(a.size/1024).toFixed(1)} KB</p>
                           </div>
-                          <a
+                          
                             href={anexoProxy(a.content)}
                             download={a.filename}
                             target="_blank"
@@ -278,6 +277,7 @@ export default function PromoPage() {
                             <Download size={11} strokeWidth={2.5} /> Baixar
                           </a>
                         </div>
+
                       </div>
                     );
                   })}
