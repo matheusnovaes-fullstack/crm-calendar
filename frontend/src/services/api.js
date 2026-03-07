@@ -2,6 +2,10 @@
 const API_BASE =
   import.meta.env.VITE_API_URL || "https://crm-calendar-backend.onrender.com/api";
 
+export function anexoProxyUrl(url) {
+  return `${API_BASE}/anexo-proxy?url=${encodeURIComponent(url)}`;
+}
+
 export async function getIssues(projeto = "CP") {
   const response = await fetch(`${API_BASE}/${projeto}`);
   if (!response.ok) throw new Error(`Erro ${response.status}`);
