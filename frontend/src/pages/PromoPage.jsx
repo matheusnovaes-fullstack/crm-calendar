@@ -7,7 +7,7 @@ import { useNotificacoesCtx, useTemaCtx } from "../App";
 import { ArrowLeft, Home, Paperclip, Download, Tag, Trophy } from "lucide-react";
 
 function LoadingBar({ t }) {
-  const [width, setWidth] = useState(0);f
+  const [width, setWidth] = useState(0);
 
   useEffect(() => {
     setTimeout(() => setWidth(30),   50);
@@ -243,7 +243,6 @@ export default function PromoPage() {
                     return (
                       <div key={a.id} style={{ background:t.cardAlt, borderRadius:10, overflow:"hidden", border:`1px solid ${t.border}` }}>
 
-                        {/* 🔥 Imagem clicável que abre em tamanho real */}
                         {isImg && (
                           <img
                             src={anexoProxy(a.content)}
@@ -267,12 +266,13 @@ export default function PromoPage() {
                             <p style={{ fontSize:11, color:t.textMuted, wordBreak:"break-all" }}>{a.filename}</p>
                             <p style={{ fontSize:10, color:t.textDeep, marginTop:2 }}>{(a.size/1024).toFixed(1)} KB</p>
                           </div>
-                          
+                          <a
                             href={anexoProxy(a.content)}
                             download={a.filename}
                             target="_blank"
                             rel="noreferrer"
                             style={{ background:"linear-gradient(135deg,#6366F1,#4F46E5)", color:"#fff", borderRadius:7, padding:"7px 14px", fontSize:11, textDecoration:"none", fontWeight:600, whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6 }}
+                          >
                             <Download size={11} strokeWidth={2.5} /> Baixar
                           </a>
                         </div>
