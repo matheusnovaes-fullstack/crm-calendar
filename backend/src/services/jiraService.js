@@ -203,7 +203,7 @@ async function buscarIssues(projeto) {
           jogo: f.customfield_11727?.value || f.customfield_11727 || null,
 
           // === CAMPOS IMPORTANTES ===
-          segmento: extrairValor(f.customfield_14441),
+          segmento: extrairValor(f.customfield_14441) || extrairTextoRich(f.customfield_17929),
 
           tipoPremio: extrairValor(f.customfield_17930),
 
