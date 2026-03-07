@@ -240,12 +240,14 @@ export default function PromoPage() {
                 <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
                   {anexos.map(a => {
                     const isImg = a.mimeType?.startsWith("image/");
+                    const url   = anexoProxyUrl(a.content);
                     return (
                       <div key={a.id} style={{ background:t.cardAlt, borderRadius:10, overflow:"hidden", border:`1px solid ${t.border}` }}>
 
+                        {/* Preview inline — clica para abrir em tamanho real */}
                         {isImg && (
                           <img
-                            src={anexoProxy(a.content)}
+                            src={url}
                             alt={a.filename}
                             title={"Clique para abrir em tamanho real"}
                             style={{
@@ -256,7 +258,7 @@ export default function PromoPage() {
                               cursor:"zoom-in",
                               display:"block"
                             }}
-                            onClick={() => window.open(anexoProxy(a.content), "_blank")}
+                            onClick={() => window.open(url, "_blank")}
                             onError={e => e.target.style.display="none"}
                           />
                         )}
@@ -267,7 +269,7 @@ export default function PromoPage() {
                             <p style={{ fontSize:10, color:t.textDeep, marginTop:2 }}>{(a.size/1024).toFixed(1)} KB</p>
                           </div>
                           <a
-                            href={anexoProxy(a.content)}
+                            href={url}
                             download={a.filename}
                             target="_blank"
                             rel="noreferrer"
