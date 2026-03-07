@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { getIssues, getAnexos, anexoProxy } from "../services/api";
+import { getIssues, getAnexos, anexoProxyUrl } from "../services/api";
 import StatusBadge from "../components/StatusBadge";
 import Sidebar from "../components/Sidebar";
 import { useNotificacoesCtx, useTemaCtx } from "../App";
