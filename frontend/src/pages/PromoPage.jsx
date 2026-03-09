@@ -126,7 +126,7 @@ export default function PromoPage() {
     { label:"Casa",                      value:issue.casa                                                     },
     { label:"Canal de Envio",            value:issue.canalEnvio                                               },
     { label:"Critério de Elegibilidade", value:issue.criterioElegibilidade                                    },
-    { label:"Link da Campanha",          value:issue.linkCampanha                                             },
+    { label:"Link da Campanha",          value:issue.linkCampanha, isLink:true                                },
     { label:"Marca Secundária",          value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
     { label:"Jogo",                      value:issue.jogo                                                     },
     { label:"Segmento / Público",        value:issue.segmento                                                 },
@@ -219,7 +219,26 @@ export default function PromoPage() {
                 {campos.filter(c => c.value && c.value !== "—").map(c => (
                   <div key={c.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
                     <span style={{ fontSize:11, color:t.textMuted, fontWeight:500, flexShrink:0 }}>{c.label}</span>
-                    <span style={{ fontSize:12, color:t.textSub, textAlign:"right" }}>{c.value}</span>
+                    {c.isLink && c.value ? (
+                      <a 
+                        href={c.value} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        style={{ 
+                          fontSize:12, 
+                          color:"#6366F1", 
+                          textAlign:"right", 
+                          textDecoration:"none", 
+                          wordBreak:"break-all", 
+                          overflowWrap:"anywhere",
+                          minWidth:0
+                        }}
+                      >
+                        {c.value}
+                      </a>
+                    ) : (
+                      <span style={{ fontSize:12, color:t.textSub, textAlign:"right", wordBreak:"break-all", overflowWrap:"anywhere", minWidth:0 }}>{c.value}</span>
+                    )}
                   </div>
                 ))}
               </div>
