@@ -11,7 +11,10 @@ export default function StatusBadge({ inicio, fim }) {
   let end = null;
   if (fim) {
     end = new Date(fim);
-    end.setHours(23, 59, 59, 999);
+  // Só estende para 23:59 se o Jira não enviou hora (00:00:00)
+    if (end.getHours() === 0 && end.getMinutes() === 0 && end.getSeconds() === 0) {
+      end.setHours(23, 59, 59, 999);
+    }
   }
 
   let label, bg, color, border, dot;
