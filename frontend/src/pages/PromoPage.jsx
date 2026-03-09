@@ -53,9 +53,9 @@ function LoadingBar({ t }) {
                 {Array.from({ length:6 }).map((_,j) => (
                   <div key={j} style={{ display:"flex", justifyContent:"space-between", padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
                     <div style={{ width:`${30+j*5}%`, height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.08}s` }} />
-                    <div style={{ width:"25%",         height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.1}s`  }} />
+                    <div style={{ width:"25%", height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.1}s` }} />
                   </div>
-                })}
+                ))}
               </div>
             ))}
           </div>
