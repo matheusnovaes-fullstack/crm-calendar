@@ -10,28 +10,48 @@ const auth = {
 
 let cache = {};
 
-// === NOVAS FUNÇÕES PARA RICHTEXT ===
+// === FUNÇÕES PARA RICHTEXT ===
+// Percorre o documento Atlassian Document Format (ADF) do Jira
+// preservando quebras de parágrafo e de linha como \n
 function extrairTextoRich(doc) {
   function walk(node) {
-    if (node.type === 'text') return node.text || '';
-    if (node.content && Array.isArray(node.content)) {
-      return node.content.map(walk).join('');
+    if (!node) return "";
+
+    // Nó de texto puro
+    if (node.type === "text") return node.text || "";
+
+    // Quebra de linha explícita (hardBreak)
+    if (node.type === "hardBreak") return "\n";
+
+    // Parágrafo — adiciona \n após o conteúdo (exceto se vazio)
+    if (node.type === "paragraph") {
+      const texto = (node.content || []).map(walk).join("").trimEnd();
+      return texto ? texto + "\n" : "";
     }
-    return '';
+
+    // Outros nós com filhos (bullet list, heading, etc.)
+    if (node.content && Array.isArray(node.content)) {
+      return node.content.map(walk).join("");
+    }
+
+    return "";
   }
-  return walk(doc) || null;
+
+  const resultado = walk(doc);
+  // Remove \n duplos excessivos e trim final
+  return resultado ? resultado.replace(/\n{3,}/g, "\n\n").trim() : null;
 }
 
 function extrairValor(issue, campoId) {
   const campo = issue.fields[`customfield_${campoId}`];
-  
+
   if (!campo) return null;
-  
-  // Trata rich text (Jira rich editor)
-  if (campo.type === 'doc' && campo.content) {
+
+  // Trata rich text (Jira rich editor — ADF)
+  if (campo.type === "doc" && campo.content) {
     return extrairTextoRich(campo);
   }
-  
+
   // Campo simples (string/select)
   return campo.value || campo || null;
 }
