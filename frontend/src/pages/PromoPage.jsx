@@ -55,7 +55,8 @@ function LoadingBar({ t }) {
                     <div style={{ width:`${30+j*5}%`, height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.08}s` }} />
                     <div style={{ width:"25%",         height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.1}s`  }} />
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ))}
           </div>
@@ -126,7 +127,7 @@ export default function PromoPage() {
     { label:"Casa",                      value:issue.casa                                                     },
     { label:"Canal de Envio",            value:issue.canalEnvio                                               },
     { label:"Critério de Elegibilidade", value:issue.criterioElegibilidade                                    },
-    { label:"Link da Campanha",          value:issue.linkCampanha, isLink:true                                },
+    { label:"Link da Campanha",          value:issue.linkCampanha                                             },
     { label:"Marca Secundária",          value:issue.casa2 && issue.casa2 !== issue.casa ? issue.casa2 : null },
     { label:"Jogo",                      value:issue.jogo                                                     },
     { label:"Segmento / Público",        value:issue.segmento                                                 },
@@ -216,31 +217,15 @@ export default function PromoPage() {
                 <p style={{ fontSize:10, fontWeight:700, color:t.textMuted, letterSpacing:1.5 }}>INFORMAÇÕES DO TICKET</p>
               </div>
               <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
-                {campos.filter(c => c.value && c.value !== "—").map(c => (
+                {campos.filter(c => c.value && c.value !== "—").map(c => {
+                  const isMultiline = ["Oferta / Incentivo", "Observações Operacionais"].includes(c.label);
+                  return (
                   <div key={c.label} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", gap:12, padding:"10px 0", borderBottom:`1px solid ${t.border}` }}>
                     <span style={{ fontSize:11, color:t.textMuted, fontWeight:500, flexShrink:0 }}>{c.label}</span>
-                    {c.isLink && c.value ? (
-                      <a 
-                        href={c.value} 
-                        target="_blank" 
-                        rel="noreferrer" 
-                        style={{ 
-                          fontSize:12, 
-                          color:"#6366F1", 
-                          textAlign:"right", 
-                          textDecoration:"none", 
-                          wordBreak:"break-all", 
-                          overflowWrap:"anywhere",
-                          minWidth:0
-                        }}
-                      >
-                        {c.value}
-                      </a>
-                    ) : (
-                      <span style={{ fontSize:12, color:t.textSub, textAlign:"right", wordBreak:"break-all", overflowWrap:"anywhere", minWidth:0 }}>{c.value}</span>
-                    )}
+                    <span style={{ fontSize:12, color:t.textSub, textAlign:"right", whiteSpace: isMultiline ? "pre-line" : "normal" }}>{c.value}</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
