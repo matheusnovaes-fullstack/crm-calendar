@@ -5,7 +5,14 @@ export default function StatusBadge({ inicio, fim }) {
 
   const agora = new Date();
   const start = inicio ? new Date(inicio) : null;
-  const end   = fim    ? new Date(fim)    : null;
+
+  // Estende o fim para 23:59:59.999 do dia — evita marcar como encerrada
+  // quando o Jira salva a data sem horário (ex: "2026-03-10T00:00:00")
+  let end = null;
+  if (fim) {
+    end = new Date(fim);
+    end.setHours(23, 59, 59, 999);
+  }
 
   let label, bg, color, border, dot;
 
