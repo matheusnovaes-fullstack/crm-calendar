@@ -55,7 +55,6 @@ function LoadingBar({ t }) {
                     <div style={{ width:`${30+j*5}%`, height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.08}s` }} />
                     <div style={{ width:"25%",         height:11, borderRadius:4, background:t.cardHover, animation:`shimmer 1.5s infinite ${j*0.1}s`  }} />
                   </div>
-                  );
                 })}
               </div>
             ))}
