@@ -15,18 +15,25 @@ export default function NotificacaoPopup({ notificacao, onConfirmar }) {
 
   return (
     <>
-      <div style={{
-        position:"fixed", inset:0,
-        background:"rgba(0,0,0,0.6)",
-        backdropFilter:"blur(4px)",
-        zIndex:9998,
-        animation:"fadeIn 0.2s ease"
-      }} />
+      {/* Overlay — fecha ao clicar fora */}
+      <div
+        onClick={onConfirmar}
+        style={{
+          position:"fixed", inset:0,
+          background:"rgba(0,0,0,0.6)",
+          backdropFilter:"blur(4px)",
+          zIndex:9000,
+          animation:"fadeIn 0.2s ease",
+          cursor:"pointer"
+        }}
+      />
 
+      {/* Modal — z-index maior que o overlay, pointer-events garantidos */}
       <div style={{
         position:"fixed", top:"50%", left:"50%",
         transform:"translate(-50%,-50%)",
-        zIndex:9999,
+        zIndex:9001,
+        pointerEvents:"all",
         background:t.card,
         border:`1.5px solid ${corBd}`,
         borderRadius:16,
@@ -71,14 +78,17 @@ export default function NotificacaoPopup({ notificacao, onConfirmar }) {
           <span style={{ fontSize:12, color:t.textSub, fontWeight:600 }}>{notificacao.horario}</span>
         </div>
 
-        <button onClick={onConfirmar} style={{
-          width:"100%", padding:"12px",
-          background:btnBg,
-          color:"#fff", border:"none", borderRadius:10,
-          fontSize:13, fontWeight:700, cursor:"pointer",
-          boxShadow:`0 4px 14px ${shadow}`,
-          letterSpacing:0.5, transition:"opacity 0.15s"
-        }}
+        <button
+          onClick={onConfirmar}
+          style={{
+            width:"100%", padding:"12px",
+            background:btnBg,
+            color:"#fff", border:"none", borderRadius:10,
+            fontSize:13, fontWeight:700, cursor:"pointer",
+            boxShadow:`0 4px 14px ${shadow}`,
+            letterSpacing:0.5, transition:"opacity 0.15s",
+            position:"relative", zIndex:1
+          }}
           onMouseEnter={e => e.currentTarget.style.opacity="0.85"}
           onMouseLeave={e => e.currentTarget.style.opacity="1"}
         >
