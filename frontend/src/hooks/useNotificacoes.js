@@ -104,11 +104,17 @@ export function useNotificacoes(issues, newPromos = []) {
     });
   }, [newPromos]);
 
+  // Na primeira carga: registra silenciosamente todos os alertas que
+  // já seriam disparados agora — evita popup ao abrir/recarregar a página
+  const primeiraExecucao = useRef(true);
+
   // Verificação de alertas de tempo (a cada 10s)
   useEffect(() => {
     function checar() {
       const agora = Date.now();
       const novas = [];
+      const silencioso = primeiraExecucao.current;
+      primeiraExecucao.current = false;
 
       issues.forEach(issue => {
         if (!issue.data_resolucao) return;
@@ -132,30 +138,28 @@ export function useNotificacoes(issues, newPromos = []) {
         // Alerta 15 min antes do fim
         if (restante > 0 && restante <= ANTECEDENCIA_15 && !jaNotificado.current.has(`${issue.chave}_15`)) {
           const notif = { id:`${issue.chave}_15`, chave:issue.chave, resumo:issue.resumo, minutos:15, horario, urgente:false, tipo:"encerramento", ts:Date.now(), lida:false };
-          novas.push(notif);
-          adicionarNotif(notif);
+          adicionarNotif(notif); // sempre registra no histórico
+          if (!silencioso) novas.push(notif); // popup só após a primeira carga
         }
 
         // Alerta 5 min antes do fim
         if (restante > 0 && restante <= ANTECEDENCIA_5 && !jaNotificado.current.has(`${issue.chave}_5`)) {
           const notif = { id:`${issue.chave}_5`, chave:issue.chave, resumo:issue.resumo, minutos:5, horario, urgente:true, tipo:"encerramento", ts:Date.now(), lida:false };
-          novas.push(notif);
-          adicionarNotif(notif);
+          adicionarNotif(notif); // sempre registra no histórico
+          if (!silencioso) novas.push(notif); // popup só após a primeira carga
         }
 
-        // Campanha iniciando (janela de 30s)
+        // Campanha iniciando (janela de 30s) — registra no histórico, sem popup
         if (inicio && Math.abs(agora - inicio) <= 30000 && !jaNotificado.current.has(`${issue.chave}_inicio`)) {
           const hi = new Date(inicio).toLocaleTimeString("pt-BR", { hour:"2-digit", minute:"2-digit" });
           const notif = { id:`${issue.chave}_inicio`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario:hi, urgente:false, tipo:"inicio", ts:Date.now(), lida:false };
-          novas.push(notif);
-          adicionarNotif(notif);
+          adicionarNotif(notif); // só histórico, não entra na fila de popup
         }
 
-        // Campanha encerrando agora (janela de 30s após 23:59:59)
+        // Campanha encerrando agora (janela de 30s) — registra no histórico, sem popup
         if (restante <= 0 && Math.abs(agora - fim) <= 30000 && !jaNotificado.current.has(`${issue.chave}_fim`)) {
           const notif = { id:`${issue.chave}_fim`, chave:issue.chave, resumo:issue.resumo, minutos:0, horario, urgente:false, tipo:"encerrada", ts:Date.now(), lida:false };
-          novas.push(notif);
-          adicionarNotif(notif);
+          adicionarNotif(notif); // só histórico, não entra na fila de popup
         }
       });
 
