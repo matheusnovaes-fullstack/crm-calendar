@@ -95,7 +95,7 @@ export function useNotificacoes(issues, newPromos = []) {
       };
       adicionarHistorico(notif);
       tocarSinal(false);
-      setFila(prev => [...prev, notif]);
+      // Nova campanha vai só pro histórico (sino), sem popup de encerramento
     });
   }, [newPromos]);
 
